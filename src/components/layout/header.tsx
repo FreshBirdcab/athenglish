@@ -3,30 +3,7 @@
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { User, LogOut, Sparkles } from "lucide-react"
-
-// 古希腊猫头鹰图标 (用于 Header)
-function HeaderIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 100 100"
-      className={className}
-      fill="none"
-    >
-      <ellipse cx="50" cy="40" rx="22" ry="18" fill="currentColor" className="text-amber-600" />
-      <ellipse cx="50" cy="44" rx="15" ry="12" fill="currentColor" className="text-amber-100" />
-      <circle cx="43" cy="42" r="5" fill="#1f2937" />
-      <circle cx="57" cy="42" r="5" fill="#1f2937" />
-      <circle cx="44" cy="40" r="1.5" fill="white" />
-      <circle cx="58" cy="40" r="1.5" fill="white" />
-      <polygon points="50,45 47,50 53,50" fill="currentColor" className="text-amber-600" />
-      <ellipse cx="50" cy="70" rx="25" ry="18" fill="currentColor" className="text-amber-600" />
-      <ellipse cx="50" cy="72" rx="18" ry="13" fill="currentColor" className="text-amber-100" />
-      <path d="M20 58 Q25 55 28 58" stroke="currentColor" strokeWidth="2" fill="none" className="text-green-600" />
-    </svg>
-  )
-}
+import { BookOpen, User, LogOut, Sparkles } from "lucide-react"
 
 export function Header() {
   const { data: session, status } = useSession()
@@ -40,7 +17,7 @@ export function Header() {
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 group">
             <div className="relative">
-              <HeaderIcon className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
+              <BookOpen className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
               <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <span className="text-xl font-bold gradient-text">AthEnglish</span>
