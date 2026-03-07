@@ -1,8 +1,92 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { prisma } from "@/lib/prisma"
-import { BookOpen, MessageCircle, PenTool, Layers, Sparkles, Star } from "lucide-react"
+import { Sparkles, Star } from "lucide-react"
+
+// 古希腊风格图标组件
+function OwlIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 100 100"
+      className={className}
+      fill="none"
+    >
+      {/* 头部 */}
+      <ellipse cx="50" cy="35" rx="25" ry="22" fill="currentColor" className="text-amber-600" />
+      {/* 面部浅色区域 */}
+      <ellipse cx="50" cy="40" rx="18" ry="15" fill="currentColor" className="text-amber-100" />
+      {/* 眼睛 */}
+      <circle cx="42" cy="38" r="6" fill="#1f2937" />
+      <circle cx="58" cy="38" r="6" fill="#1f2937" />
+      <circle cx="43" cy="36" r="2" fill="white" />
+      <circle cx="59" cy="36" r="2" fill="white" />
+      {/* 喙 */}
+      <polygon points="50,42 47,48 53,48" fill="currentColor" className="text-amber-600" />
+      {/* 身体 */}
+      <ellipse cx="50" cy="70" rx="28" ry="22" fill="currentColor" className="text-amber-600" />
+      <ellipse cx="50" cy="72" rx="22" ry="16" fill="currentColor" className="text-amber-100" />
+      {/* 橄榄枝 */}
+      <path d="M15 55 Q20 50 25 55 Q30 60 35 55" stroke="currentColor" strokeWidth="2" fill="none" className="text-green-600" />
+      <ellipse cx="18" cy="53" rx="3" ry="2" fill="currentColor" className="text-green-600" />
+      <ellipse cx="28" cy="58" rx="3" ry="2" fill="currentColor" className="text-green-600" />
+      <ellipse cx="35" cy="54" rx="3" ry="2" fill="currentColor" className="text-green-600" />
+    </svg>
+  )
+}
+
+function VocabularyIcon({ className }: { className?: string }) {
+  return <OwlIcon className={className} />
+}
+
+function SentenceIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 100 100"
+      className={className}
+      fill="none"
+    >
+      {/* 卷轴/书卷 */}
+      <rect x="20" y="30" width="60" height="40" rx="4" fill="currentColor" className="text-amber-600" />
+      <rect x="25" y="35" width="50" height="30" rx="2" fill="currentColor" className="text-amber-100" />
+      {/* 左边卷轴轴 */}
+      <rect x="15" y="25" width="8" height="50" rx="2" fill="currentColor" className="text-amber-700" />
+      <circle cx="19" cy="25" r="4" fill="currentColor" className="text-amber-700" />
+      <circle cx="19" cy="75" r="4" fill="currentColor" className="text-amber-700" />
+      {/* 右边卷轴轴 */}
+      <rect x="77" y="25" width="8" height="50" rx="2" fill="currentColor" className="text-amber-700" />
+      <circle cx="81" cy="25" r="4" fill="currentColor" className="text-amber-700" />
+      <circle cx="81" cy="75" r="4" fill="currentColor" className="text-amber-700" />
+      {/* 文字线条 */}
+      <line x1="30" y1="45" x2="65" y2="45" stroke="currentColor" strokeWidth="2" className="text-amber-300" />
+      <line x1="30" y1="52" x2="55" y2="52" stroke="currentColor" strokeWidth="2" className="text-amber-300" />
+      <line x1="30" y1="59" x2="45" y2="59" stroke="currentColor" strokeWidth="2" className="text-amber-300" />
+    </svg>
+  )
+}
+
+function CorpusIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 100 100"
+      className={className}
+      fill="none"
+    >
+      {/* 对话气泡 */}
+      <path d="M20 70 L20 30 L50 30 L50 25 L20 25 L20 20 Q20 15 25 15 L75 15 Q80 15 80 20 L80 65 Q80 70 75 70 L30 70 L25 80 L25 70 Z" fill="currentColor" className="text-blue-500" />
+      {/* 对话内容 */}
+      <circle cx="35" cy="30" r="4" fill="white" />
+      <circle cx="50" cy="30" r="4" fill="white" />
+      <circle cx="65" cy="30" r="4" fill="white" />
+      <rect x="30" y="40" width="40" height="3" rx="1" fill="white" className="opacity-70" />
+      <rect x="30" y="48" width="30" height="3" rx="1" fill="white" className="opacity-70" />
+    </svg>
+  )
+}
 
 async function getBooks() {
   const books = await prisma.book.findMany({
@@ -35,13 +119,13 @@ function getBookStats(book: Awaited<ReturnType<typeof getBooks>>[0]) {
 function getBookIcon(type: string) {
   switch (type) {
     case 'vocabulary':
-      return BookOpen
+      return VocabularyIcon
     case 'sentence':
-      return PenTool
+      return SentenceIcon
     case 'corpus':
-      return MessageCircle
+      return CorpusIcon
     default:
-      return Layers
+      return OwlIcon
   }
 }
 
@@ -114,7 +198,7 @@ export default async function HomePage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="p-2 rounded-lg bg-primary/10">
-                        <Icon className="h-6 w-6 text-primary" />
+                        <Icon className="h-8 w-8" />
                       </div>
                       <Badge variant="secondary" className="badge-greek">
                         {book.type === 'vocabulary' && '词汇'}

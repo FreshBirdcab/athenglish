@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- 古希腊猫头鹰图标 (雅典娜的猫头鹰) -->
+  <!-- 头部 -->
+  <ellipse cx="50" cy="35" rx="25" ry="22" fill="#d97706" />
+  <!-- 面部浅色区域 -->
+  <ellipse cx="50" cy="40" rx="18" ry="15" fill="#fef3c7" />
+  <!-- 眼睛 -->
+  <circle cx="42" cy="38" r="6" fill="#1f2937" />
+  <circle cx="58" cy="38" r="6" fill="#1f2937" />
+  <circle cx="43" cy="36" r="2" fill="white" />
+  <circle cx="59" cy="36" r="2" fill="white" />
+  <!-- 喙 -->
+  <polygon points="50,42 47,48 53,48" fill="#d97706" />
+  <!-- 头部羽毛细节 -->
+  <path d="M28 25 Q35 18 42 25" stroke="#b45309" stroke-width="2" fill="none" />
+  <path d="M58 25 Q65 18 72 25" stroke="#b45309" stroke-width="2" fill="none" />
+  <!-- 身体 -->
+  <ellipse cx="50" cy="70" rx="28" ry="22" fill="#d97706" />
+  <ellipse cx="50" cy="72" rx="22" ry="16" fill="#fef3c7" />
+  <!-- 翅膀 -->
+  <path d="M22 65 Q30 80 40 70" stroke="#b45309" stroke-width="2" fill="none" />
+  <path d="M78 65 Q70 80 60 70" stroke="#b45309" stroke-width="2" fill="none" />
+  <!-- 爪子 -->
+  <path d="M38 90 L38 95 M38 92 L35 94 M38 92 L41 94" stroke="#b45309" stroke-width="2" fill="none" />
+  <path d="M62 90 L62 95 M62 92 L59 94 M62 92 L65 94" stroke="#b45309" stroke-width="2" fill="none" />
+  <!-- 橄榄枝 (智慧象征) -->
+  <path d="M15 55 Q20 50 25 55 Q30 60 35 55" stroke="#059669" stroke-width="2" fill="none" />
+  <ellipse cx="18" cy="53" rx="3" ry="2" fill="#059669" />
+  <ellipse cx="28" cy="58" rx="3" ry="2" fill="#059669" />
+  <ellipse cx="35" cy="54" rx="3" ry="2" fill="#059669" />
+</svg>

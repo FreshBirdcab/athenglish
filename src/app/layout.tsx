@@ -12,6 +12,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "AthEnglish - 沉浸式语言学习平台",
   description: "专业的英语学习平台，包含词汇、句型、语料学习，支持多种学习模式和间隔重复",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 }
 
 export default function RootLayout({
