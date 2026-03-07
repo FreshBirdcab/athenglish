@@ -179,6 +179,7 @@ model Annotation {
   cardId        String
   startOffset   Int
   endOffset     Int
+  field         String   @default("primary") // 所属字段: primary, usageNote, exampleEn, analysis
   highlight     String?  // 颜色
   note          String?
   isPublic      Boolean  @default(false)

@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { prisma } from "@/lib/prisma"
-import { BookOpen, Layers, MessageCircle, PenTool } from "lucide-react"
+import { BookOpen, MessageCircle, PenTool, Layers } from "lucide-react"
 
 async function getBooks() {
   const books = await prisma.book.findMany({
@@ -68,8 +68,8 @@ export default async function HomePage() {
   const books = await getBooks()
 
   return (
-    <div className="container py-12">
-      <section className="mb-12 text-center">
+    <div className="content-container py-12">
+      <section className="mb-12 text-center glass-card rounded-2xl p-8">
         <h1 className="text-4xl font-bold mb-4">AthEnglish 沉浸式语言学习</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
           专业的英语学习平台，包含词汇、句型、语料三大模块
@@ -83,8 +83,8 @@ export default async function HomePage() {
             const Icon = getBookIcon(book.type)
             const stats = getBookStats(book)
             return (
-              <Link key={book.id} href={`/books/${book.id}`}>
-                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
+              <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
+                <Card className="book-card glass-card cursor-pointer h-full">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <Icon className="h-8 w-8 text-primary" />
@@ -108,36 +108,6 @@ export default async function HomePage() {
               </Link>
             )
           })}
-        </div>
-      </section>
-
-      <section className="mt-16">
-        <h2 className="text-2xl font-semibold mb-6">学习模式</h2>
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">连续阅读</CardTitle>
-              <CardDescription>瀑布流式沉浸阅读</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">单行卡片</CardTitle>
-              <CardDescription>翻转记忆模式</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">挖空补全</CardTitle>
-              <CardDescription>输出训练</CardDescription>
-            </CardHeader>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">趣味测试</CardTitle>
-              <CardDescription>选择题与拖拽排序</CardDescription>
-            </CardHeader>
-          </Card>
         </div>
       </section>
     </div>

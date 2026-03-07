@@ -21,14 +21,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={`${inter.variable} antialiased min-h-screen flex flex-col`}>
+      <body className={`${inter.variable} antialiased min-h-screen flex flex-col bg-white`}>
         <AuthProvider>
           <Header />
           <main className="flex-1">
             {children}
           </main>
-          <footer className="border-t py-6">
-            <div className="container text-center text-sm text-muted-foreground">
+          <footer className="border-t bg-white/80 backdrop-blur-sm py-6">
+            <div className="content-container text-center text-sm text-muted-foreground">
               © 2024 AthEnglish. All rights reserved.
             </div>
           </footer>

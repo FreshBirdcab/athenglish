@@ -55,8 +55,8 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="container flex h-[80vh] items-center justify-center">
-      <Card className="w-full max-w-md">
+    <div className="content-container flex h-[80vh] items-center justify-center">
+      <Card className="w-full max-w-md glass-card">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">注册</CardTitle>
           <CardDescription>创建账号，开始你的学习之旅</CardDescription>

@@ -62,12 +62,12 @@ export default async function ProgressPage() {
   })
 
   return (
-    <div className="container py-8">
+    <div className="content-container py-8">
       <h1 className="text-3xl font-bold mb-8">学习进度</h1>
 
       {/* 统计卡片 */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">连续学习</CardTitle>
             <Flame className="h-4 w-4 text-orange-500" />
@@ -78,7 +78,7 @@ export default async function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">已学习</CardTitle>
             <BookOpen className="h-4 w-4 text-green-500" />
@@ -89,7 +89,7 @@ export default async function ProgressPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">学习进度</CardTitle>
             <Target className="h-4 w-4 text-blue-500" />
@@ -102,7 +102,7 @@ export default async function ProgressPage() {
       </div>
 
       {/* 最近7天学习情况 */}
-      <Card>
+      <Card className="glass-card">
         <CardHeader>
           <CardTitle>最近7天学习</CardTitle>
           <CardDescription>每日学习卡片数量</CardDescription>

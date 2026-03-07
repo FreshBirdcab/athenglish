@@ -21,8 +21,8 @@ async function getSubChapter(subChapterId: string) {
   return subChapter
 }
 
-export default async function LearnPage({ params }: { params: Promise<{ subChapterId: string }> }) {
-  const { subChapterId } = await params
+export default async function LearnPage({ params }: { params: { subChapterId: string } }) {
+  const subChapterId = decodeURIComponent(params.subChapterId)
   const subChapter = await getSubChapter(subChapterId)
 
   if (!subChapter) {
@@ -33,15 +33,15 @@ export default async function LearnPage({ params }: { params: Promise<{ subChapt
 
   if (cards.length === 0) {
     return (
-      <div className="container py-8">
-        <div className="mb-6">
+      <div className="content-container py-8">
+        <div className="mb-6 glass-card rounded-xl p-4">
           <Link href={`/books/${subChapter.chapter.book.id}`} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
             <ChevronLeft className="h-4 w-4" />
             返回 {subChapter.chapter.book.name}
           </Link>
           <h1 className="text-2xl font-bold mt-2">{subChapter.name}</h1>
         </div>
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="glass-card rounded-xl p-12 text-center text-muted-foreground">
           该章节暂无内容
         </div>
       </div>
@@ -49,8 +49,8 @@ export default async function LearnPage({ params }: { params: Promise<{ subChapt
   }
 
   return (
-    <div className="container py-8">
-      <div className="mb-6">
+    <div className="content-container py-8">
+      <div className="mb-6 glass-card rounded-xl p-4">
         <Link href={`/books/${subChapter.chapter.book.id}`} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1">
           <ChevronLeft className="h-4 w-4" />
           返回 {subChapter.chapter.book.name}
@@ -59,7 +59,12 @@ export default async function LearnPage({ params }: { params: Promise<{ subChapt
         <p className="text-muted-foreground">{cards.length} 张卡片</p>
       </div>
 
-      <StudyClient cards={cards} subChapterId={subChapterId} />
+      <StudyClient
+        cards={cards}
+        subChapterId={subChapterId}
+        bookType={subChapter.chapter.book.type}
+        bookSubType={subChapter.chapter.book.subType}
+      />
     </div>
   )
 }

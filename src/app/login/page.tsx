@@ -41,8 +41,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="container flex h-[80vh] items-center justify-center">
-      <Card className="w-full max-w-md">
+    <div className="content-container flex h-[80vh] items-center justify-center">
+      <Card className="w-full max-w-md glass-card">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">登录</CardTitle>
           <CardDescription>欢迎回来，继续你的学习之旅</CardDescription>

@@ -34,11 +34,11 @@ export default async function FavoritesPage() {
   })
 
   return (
-    <div className="container py-8">
+    <div className="content-container py-8">
       <h1 className="text-3xl font-bold mb-8">我的收藏</h1>
 
       {favorites.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="glass-card rounded-xl p-12 text-center text-muted-foreground">
           <p>还没有收藏内容</p>
           <p className="mt-2">在学习过程中点击 ❤️ 添加收藏</p>
         </div>
@@ -46,7 +46,7 @@ export default async function FavoritesPage() {
         <div className="grid gap-4 md:grid-cols-2">
           {favorites.map((fav) => (
             <Link key={fav.id} href={`/learn/${fav.card.subChapterId}`}>
-              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+              <Card className="card-hover glass-card cursor-pointer">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <Badge variant={fav.type === "word" ? "default" : "secondary"}>
                     {fav.type === "word" ? "生词本" : "句型库"}
