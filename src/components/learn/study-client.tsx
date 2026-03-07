@@ -6,10 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ChevronLeft, ChevronRight, Volume2, Heart, Highlighter, StickyNote, Trash2 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { ChevronLeft, ChevronRight, Volume2, Heart } from "lucide-react"
 
 interface Card {
   id: string
@@ -35,29 +32,47 @@ interface StudyClientProps {
   subChapterId: string
   bookType: string
   bookSubType: string | null
+  annotations: Record<string, Annotation[]>
+  setAnnotations: React.Dispatch<React.SetStateAction<Record<string, Annotation[]>>>
+  selectedText: { text: string; start: number; end: number; field: string; cardId: string } | null
+  setSelectedText: React.Dispatch<React.SetStateAction<{ text: string; start: number; end: number; field: string; cardId: string } | null>>
+  showMenu: boolean
+  setShowMenu: React.Dispatch<React.SetStateAction<boolean>>
+  menuPosition: { x: number; y: number }
+  setMenuPosition: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>
+  showNoteInput: boolean
+  setShowNoteInput: React.Dispatch<React.SetStateAction<boolean>>
+  noteText: string
+  setNoteText: React.Dispatch<React.SetStateAction<string>>
+  onAddHighlight: (color: string) => void
+  onAddNote: () => void
+  onDeleteAnnotation: (cardId: string, annotationId: string) => void
 }
 
-const HIGHLIGHT_COLORS = [
-  { name: "黄色", value: "#fef08a", label: "yellow" },
-  { name: "绿色", value: "#bbf7d0", label: "green" },
-  { name: "蓝色", value: "#bfdbfe", label: "blue" },
-  { name: "粉色", value: "#fbcfe8", label: "pink" },
-  { name: "橙色", value: "#fed7aa", label: "orange" },
-]
-
-export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps) {
+export function StudyClient({
+  cards,
+  subChapterId,
+  bookType,
+  annotations,
+  selectedText,
+  setSelectedText,
+  showMenu,
+  setShowMenu,
+  menuPosition,
+  setMenuPosition,
+  showNoteInput,
+  setShowNoteInput,
+  noteText,
+  setNoteText,
+  onAddHighlight,
+  onAddNote,
+  onDeleteAnnotation
+}: StudyClientProps) {
   const { data: session } = useSession()
-  const router = useRouter()
   const [currentIndex, setCurrentIndex] = useState(0)
   const [progress, setProgress] = useState(0)
   const [favorited, setFavorited] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
-  const [annotations, setAnnotations] = useState<Record<string, Annotation[]>>({})
-  const [selectedText, setSelectedText] = useState<{ text: string; start: number; end: number; field: string } | null>(null)
-  const [showNoteInput, setShowNoteInput] = useState(false)
-  const [noteText, setNoteText] = useState("")
-  const [showMenu, setShowMenu] = useState(false)
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
   const contentRef = useRef<HTMLDivElement>(null)
 
   const currentCard = cards[currentIndex]
@@ -76,23 +91,6 @@ export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps)
         .catch(console.error)
     }
   }, [session])
-
-  // 加载批注状态
-  useEffect(() => {
-    if (session?.user && currentCard) {
-      fetch(`/api/annotations?cardId=${currentCard.id}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.annotations) {
-            setAnnotations(prev => ({
-              ...prev,
-              [currentCard.id]: data.annotations
-            }))
-          }
-        })
-        .catch(console.error)
-    }
-  }, [session, currentCard])
 
   // 检查当前卡片是否已收藏
   useEffect(() => {
@@ -176,17 +174,16 @@ export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps)
       return
     }
 
-    const text = selection.toString().trim()
-    if (!text) {
+    const selectedTextContent = selection.toString().trim()
+    if (!selectedTextContent) {
       setShowMenu(false)
       return
     }
 
-    // 获取选中内容在文本中的位置
     const contentElement = contentRef.current
-    if (!contentElement) return
+    if (!contentElement || !currentCard) return
 
-    // 查找选中内容属于哪个字段 - 向上查找data-field属性
+    // 查找选中内容属于哪个字段
     let fieldElement = selection.anchorNode?.parentElement
     let field = "primary"
     while (fieldElement && fieldElement !== contentElement) {
@@ -199,134 +196,68 @@ export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps)
 
     // 获取该字段的原始文本内容
     let fieldText = ""
-    if (field === "primary") fieldText = currentCard?.contentPrimary || ""
-    else if (field === "usageNote") fieldText = currentCard?.usageNote || ""
-    else if (field === "exampleEn") fieldText = currentCard?.exampleEn || ""
-    else if (field === "analysis") fieldText = currentCard?.analysis || ""
+    if (field === "primary") fieldText = currentCard.contentPrimary
+    else if (field === "usageNote") fieldText = currentCard.usageNote || ""
+    else if (field === "exampleEn") fieldText = currentCard.exampleEn || ""
+    else if (field === "analysis") fieldText = currentCard.analysis || ""
 
-    // 计算选中区域相对于该字段文本的位置
-    const range = selection.getRangeAt(0)
+    // 在原始文本中找到选中内容的位置
+    const start = fieldText.indexOf(selectedTextContent)
 
-    // 获取字段元素
-    const fieldEl = contentElement.querySelector(`[data-field="${field}"]`)
-    if (!fieldEl) return
+    if (start === -1) {
+      // 如果原始文本中找不到，使用 DOM 计算作为后备
+      const fieldEl = contentElement.querySelector(`[data-field="${field}"]`)
+      if (!fieldEl) return
 
-    const preCaretRange = range.cloneRange()
-    preCaretRange.selectNodeContents(fieldEl)
-    preCaretRange.setEnd(range.startContainer, range.startOffset)
-    const start = preCaretRange.toString().length
-    const end = start + text.length
-
-    setSelectedText({ text, start, end, field: field as any })
+      const range = selection.getRangeAt(0)
+      const preCaretRange = range.cloneRange()
+      preCaretRange.selectNodeContents(fieldEl)
+      preCaretRange.setEnd(range.startContainer, range.startOffset)
+      const calculatedStart = preCaretRange.toString().length
+      setSelectedText({ text: selectedTextContent, start: calculatedStart, end: calculatedStart + selectedTextContent.length, field, cardId: currentCard.id })
+    } else {
+      setSelectedText({ text: selectedTextContent, start, end: start + selectedTextContent.length, field, cardId: currentCard.id })
+    }
 
     // 计算菜单位置
+    const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
     setMenuPosition({
       x: rect.left + rect.width / 2,
       y: rect.top - 10
     })
     setShowMenu(true)
-  }, [currentCard])
-
-  // 添加高亮
-  const addHighlight = async (color: string) => {
-    if (!session?.user || !selectedText || !currentCard) return
-
-    try {
-      const res = await fetch("/api/annotations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardId: currentCard.id,
-          startOffset: selectedText.start,
-          endOffset: selectedText.end,
-          highlight: color,
-          field: selectedText.field || "primary"
-        })
-      })
-      const data = await res.json()
-      if (data.annotation) {
-        setAnnotations(prev => ({
-          ...prev,
-          [currentCard.id]: [...(prev[currentCard.id] || []), { ...data.annotation, field: selectedText.field || "primary" }]
-        }))
-      }
-    } catch (error) {
-      console.error("添加高亮失败:", error)
-    }
-
-    setShowMenu(false)
-    window.getSelection()?.removeAllRanges()
-  }
-
-  // 添加批注
-  const addNote = async () => {
-    if (!session?.user || !selectedText || !currentCard || !noteText.trim()) return
-
-    try {
-      const res = await fetch("/api/annotations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cardId: currentCard.id,
-          startOffset: selectedText.start,
-          endOffset: selectedText.end,
-          note: noteText.trim(),
-          field: selectedText.field || "primary"
-        })
-      })
-      const data = await res.json()
-      if (data.annotation) {
-        setAnnotations(prev => ({
-          ...prev,
-          [currentCard.id]: [...(prev[currentCard.id] || []), { ...data.annotation, field: selectedText.field || "primary" }]
-        }))
-      }
-    } catch (error) {
-      console.error("添加批注失败:", error)
-    }
-
-    setShowNoteInput(false)
-    setNoteText("")
-    setShowMenu(false)
-    window.getSelection()?.removeAllRanges()
-  }
-
-  // 删除批注
-  const deleteAnnotation = async (annotationId: string) => {
-    if (!currentCard) return
-
-    try {
-      await fetch(`/api/annotations?id=${annotationId}`, { method: "DELETE" })
-      setAnnotations(prev => ({
-        ...prev,
-        [currentCard.id]: prev[currentCard.id].filter((a: Annotation) => a.id !== annotationId)
-      }))
-    } catch (error) {
-      console.error("删除批注失败:", error)
-    }
-  }
+  }, [currentCard, setSelectedText, setShowMenu, setMenuPosition])
 
   // 渲染带高亮的文本
   const renderHighlightedText = (text: string, cardId: string, field: string) => {
     const cardAnnotations = annotations[cardId] || []
-    // 筛选当前字段的批注
     const fieldAnnotations = cardAnnotations.filter((a: Annotation) => a.field === field)
     if (fieldAnnotations.length === 0) return text
 
-    // 按起始位置排序
     const sorted = [...fieldAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+
+    // 过滤重叠
+    const validAnnotations: Annotation[] = []
+    for (const ann of sorted) {
+      const isOverlapping = validAnnotations.some(
+        existing => !(ann.endOffset <= existing.startOffset || ann.startOffset >= existing.endOffset)
+      )
+      if (!isOverlapping) {
+        validAnnotations.push(ann)
+      }
+    }
 
     const parts: JSX.Element[] = []
     let lastEnd = 0
 
-    sorted.forEach((ann: Annotation, index: number) => {
-      // 添加普通文本
+    validAnnotations.forEach((ann: Annotation, index: number) => {
+      if (ann.startOffset < lastEnd) return
+
       if (ann.startOffset > lastEnd) {
         parts.push(<span key={`text-${field}-${index}`}>{text.slice(lastEnd, ann.startOffset)}</span>)
       }
 
-      // 添加高亮文本
       parts.push(
         <span
           key={`highlight-${field}-${index}`}
@@ -340,7 +271,7 @@ export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps)
             </span>
           )}
           <button
-            onClick={(e) => { e.stopPropagation(); deleteAnnotation(ann.id); }}
+            onClick={(e) => { e.stopPropagation(); onDeleteAnnotation(cardId, ann.id); }}
             className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100"
           >
             ×
@@ -351,7 +282,6 @@ export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps)
       lastEnd = ann.endOffset
     })
 
-    // 添加剩余文本
     if (lastEnd < text.length) {
       parts.push(<span key="text-end">{text.slice(lastEnd)}</span>)
     }
@@ -483,51 +413,6 @@ export function StudyClient({ cards, subChapterId, bookType }: StudyClientProps)
           </div>
         )}
       </div>
-
-      {/* 高亮/批注菜单 */}
-      {showMenu && selectedText && (
-        <div
-          className="fixed z-50 bg-white rounded-lg shadow-lg border p-2 flex gap-1"
-          style={{
-            left: menuPosition.x,
-            top: menuPosition.y,
-            transform: 'translate(-50%, -100%)'
-          }}
-        >
-          {HIGHLIGHT_COLORS.map(color => (
-            <button
-              key={color.label}
-              onClick={() => addHighlight(color.value)}
-              className="w-6 h-6 rounded-full border-2 border-white shadow-sm hover:scale-110 transition-transform"
-              style={{ backgroundColor: color.value }}
-              title={color.name}
-            />
-          ))}
-          <Popover open={showNoteInput} onOpenChange={setShowNoteInput}>
-            <PopoverTrigger asChild>
-              <button
-                onClick={() => { setShowNoteInput(true); }}
-                className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 transition-transform"
-                title="添加批注"
-              >
-                <StickyNote className="w-3 h-3 text-amber-700" />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64" side="top">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">添加批注</p>
-                <Input
-                  placeholder="输入批注内容..."
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addNote()}
-                />
-                <Button size="sm" onClick={addNote} className="w-full">保存</Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      )}
 
       {/* 导航按钮 */}
       <div className="flex justify-center gap-4">

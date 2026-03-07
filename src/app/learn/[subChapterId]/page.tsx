@@ -2,7 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { ChevronLeft } from "lucide-react"
-import { StudyClient } from "@/components/learn/study-client"
+import { StudyModeWrapper } from "@/components/learn/study-mode-wrapper"
 
 async function getSubChapter(subChapterId: string) {
   const subChapter = await prisma.subChapter.findUnique({
@@ -59,7 +59,7 @@ export default async function LearnPage({ params }: { params: { subChapterId: st
         <p className="text-muted-foreground">{cards.length} 张卡片</p>
       </div>
 
-      <StudyClient
+      <StudyModeWrapper
         cards={cards}
         subChapterId={subChapterId}
         bookType={subChapter.chapter.book.type}
