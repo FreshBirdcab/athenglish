@@ -90,6 +90,41 @@ export async function PUT(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user) {
+      return NextResponse.json({ error: "未登录" }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+
+    if (!id) {
+      return NextResponse.json({ error: "缺少批注ID" }, { status: 400 })
+    }
+
+    const body = await request.json()
+
+    // 更新批注
+    const annotation = await prisma.annotation.update({
+      where: {
+        id,
+        userId: (session.user as any).id,
+      },
+      data: {
+        highlight: body.highlight !== undefined ? body.highlight : undefined,
+        note: body.note !== undefined ? body.note : undefined,
+      },
+    })
+
+    return NextResponse.json({ annotation })
+  } catch (error) {
+    console.error("更新批注错误:", error)
+    return NextResponse.json({ error: "更新失败" }, { status: 500 })
+  }
+}
+
 export async function DELETE(request: Request) {
   try {
     const session = await getServerSession(authOptions)

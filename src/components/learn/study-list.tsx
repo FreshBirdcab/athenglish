@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,9 +32,10 @@ interface StudyListProps {
   annotations: Record<string, Annotation[]>
   onTextSelect: (cardId: string, text: string, start: number, end: number, field: string, position: { x: number; y: number }) => void
   onDeleteAnnotation: (cardId: string, annotationId: string) => void
+  onHighlightClick: (cardId: string, annotation: Annotation, event: React.MouseEvent) => void
 }
 
-export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation }: StudyListProps) {
+export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick }: StudyListProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const contentRefs = useRef<Record<string, HTMLDivElement>>({})
@@ -126,7 +127,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       }
     }
 
-    const parts: JSX.Element[] = []
+    const parts: React.JSX.Element[] = []
     let lastEnd = 0
 
     validAnnotations.forEach((ann: Annotation, index: number) => {
@@ -139,8 +140,9 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       parts.push(
         <span
           key={`highlight-${field}-${index}`}
-          className="relative group cursor-pointer px-0.5 rounded"
+          className="relative group cursor-pointer px-0.5 rounded border-2 border-dashed border-amber-400/50 hover:border-amber-400 transition-colors"
           style={{ backgroundColor: ann.highlight || undefined }}
+          onClick={(e) => onHighlightClick(cardId, ann, e)}
         >
           {text.slice(ann.startOffset, ann.endOffset)}
           {ann.note && (

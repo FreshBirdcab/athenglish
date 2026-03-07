@@ -51,7 +51,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   const mode = searchParams.get("mode") || "card"
 
   const [annotations, setAnnotations] = useState<Record<string, Annotation[]>>({})
-  const [selectedText, setSelectedText] = useState<{ text: string; start: number; end: number; field: string; cardId: string } | null>(null)
+  const [selectedText, setSelectedText] = useState<{ text: string; start: number; end: number; field: string; cardId: string; annotationId?: string; highlight?: string | null; note?: string | null } | null>(null)
   const [showNoteInput, setShowNoteInput] = useState(false)
   const [noteText, setNoteText] = useState("")
   const [showMenu, setShowMenu] = useState(false)
@@ -98,9 +98,38 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
     router.push(`?${params.toString()}`)
   }
 
-  // 添加高亮
+  // 添加/更新高亮
   const handleAddHighlight = useCallback(async (color: string) => {
     if (!session?.user || !selectedText) return
+
+    // 如果是编辑已有批注
+    if (selectedText.annotationId) {
+      try {
+        const res = await fetch(`/api/annotations?id=${selectedText.annotationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            highlight: color,
+            note: selectedText.note || null
+          })
+        })
+        const data = await res.json()
+        if (data.annotation) {
+          setAnnotations(prev => ({
+            ...prev,
+            [selectedText.cardId]: prev[selectedText.cardId].map((a: Annotation) =>
+              a.id === selectedText.annotationId ? { ...a, highlight: color } : a
+            )
+          }))
+        }
+      } catch (error) {
+        console.error("更新高亮失败:", error)
+      }
+      setShowMenu(false)
+      window.getSelection()?.removeAllRanges()
+      setSelectedText(null)
+      return
+    }
 
     // 检查是否与已有的高亮重叠（只检查有 highlight 的批注）
     const existingAnnotations = annotations[selectedText.cardId] || []
@@ -145,9 +174,40 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
     window.getSelection()?.removeAllRanges()
   }, [session, selectedText, annotations])
 
-  // 添加批注
+  // 添加/更新批注
   const handleAddNote = useCallback(async () => {
     if (!session?.user || !selectedText || !noteText.trim()) return
+
+    // 如果是编辑已有批注
+    if (selectedText.annotationId) {
+      try {
+        const res = await fetch(`/api/annotations?id=${selectedText.annotationId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            note: noteText.trim(),
+            highlight: selectedText.highlight || null
+          })
+        })
+        const data = await res.json()
+        if (data.annotation) {
+          setAnnotations(prev => ({
+            ...prev,
+            [selectedText.cardId]: prev[selectedText.cardId].map((a: Annotation) =>
+              a.id === selectedText.annotationId ? { ...a, note: noteText.trim() } : a
+            )
+          }))
+        }
+      } catch (error) {
+        console.error("更新批注失败:", error)
+      }
+      setShowNoteInput(false)
+      setNoteText("")
+      setShowMenu(false)
+      window.getSelection()?.removeAllRanges()
+      setSelectedText(null)
+      return
+    }
 
     try {
       const res = await fetch("/api/annotations", {
@@ -190,6 +250,38 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
       console.error("删除批注失败:", error)
     }
   }, [])
+
+  // 处理高亮区域的点击（编辑高亮）
+  const handleHighlightClick = useCallback((
+    cardId: string,
+    annotation: Annotation,
+    event: React.MouseEvent
+  ) => {
+    event.stopPropagation()
+    if (!session?.user) {
+      alert("请先登录后再编辑批注")
+      return
+    }
+
+    // 设置当前选中的批注信息
+    setSelectedText({
+      text: "", // 不需要，因为是编辑已有批注
+      start: annotation.startOffset,
+      end: annotation.endOffset,
+      field: annotation.field,
+      cardId,
+      annotationId: annotation.id, // 添加 annotationId 用于更新
+      highlight: annotation.highlight,
+      note: annotation.note
+    })
+
+    // 计算菜单位置（点击位置）
+    setMenuPosition({
+      x: event.clientX,
+      y: event.clientY
+    })
+    setShowMenu(true)
+  }, [session])
 
   return (
     <div>
@@ -236,9 +328,15 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           <Popover open={showNoteInput} onOpenChange={setShowNoteInput}>
             <PopoverTrigger asChild>
               <button
-                onClick={() => { setShowNoteInput(true); }}
+                onClick={() => {
+                  // 如果是编辑已有批注，预填当前批注内容
+                  if (selectedText?.annotationId) {
+                    setNoteText(selectedText.note || "")
+                  }
+                  setShowNoteInput(true)
+                }}
                 className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center border-2 border-white shadow-sm hover:scale-110 transition-transform"
-                title="添加批注"
+                title={selectedText?.annotationId ? "编辑批注" : "添加批注"}
               >
                 <svg className="w-3 h-3 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
@@ -247,7 +345,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
             </PopoverTrigger>
             <PopoverContent className="w-64" side="top">
               <div className="space-y-2">
-                <p className="text-sm font-medium">添加批注</p>
+                <p className="text-sm font-medium">{selectedText.annotationId ? "编辑批注" : "添加批注"}</p>
                 <Input
                   placeholder="输入批注内容..."
                   value={noteText}
@@ -273,6 +371,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
             setShowMenu(true)
           }}
           onDeleteAnnotation={handleDeleteAnnotation}
+          onHighlightClick={handleHighlightClick}
         />
       ) : (
         <StudyClient
@@ -295,6 +394,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           onAddHighlight={handleAddHighlight}
           onAddNote={handleAddNote}
           onDeleteAnnotation={handleDeleteAnnotation}
+          onHighlightClick={handleHighlightClick}
         />
       )}
     </div>

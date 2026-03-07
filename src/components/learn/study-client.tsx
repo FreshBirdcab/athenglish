@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -34,8 +34,8 @@ interface StudyClientProps {
   bookSubType: string | null
   annotations: Record<string, Annotation[]>
   setAnnotations: React.Dispatch<React.SetStateAction<Record<string, Annotation[]>>>
-  selectedText: { text: string; start: number; end: number; field: string; cardId: string } | null
-  setSelectedText: React.Dispatch<React.SetStateAction<{ text: string; start: number; end: number; field: string; cardId: string } | null>>
+  selectedText: { text: string; start: number; end: number; field: string; cardId: string; annotationId?: string; highlight?: string | null; note?: string | null } | null
+  setSelectedText: React.Dispatch<React.SetStateAction<{ text: string; start: number; end: number; field: string; cardId: string; annotationId?: string; highlight?: string | null; note?: string | null } | null>>
   showMenu: boolean
   setShowMenu: React.Dispatch<React.SetStateAction<boolean>>
   menuPosition: { x: number; y: number }
@@ -47,6 +47,7 @@ interface StudyClientProps {
   onAddHighlight: (color: string) => void
   onAddNote: () => void
   onDeleteAnnotation: (cardId: string, annotationId: string) => void
+  onHighlightClick: (cardId: string, annotation: Annotation, event: React.MouseEvent) => void
 }
 
 export function StudyClient({
@@ -66,7 +67,8 @@ export function StudyClient({
   setNoteText,
   onAddHighlight,
   onAddNote,
-  onDeleteAnnotation
+  onDeleteAnnotation,
+  onHighlightClick
 }: StudyClientProps) {
   const { data: session } = useSession()
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -248,7 +250,7 @@ export function StudyClient({
       }
     }
 
-    const parts: JSX.Element[] = []
+    const parts: React.JSX.Element[] = []
     let lastEnd = 0
 
     validAnnotations.forEach((ann: Annotation, index: number) => {
@@ -261,8 +263,9 @@ export function StudyClient({
       parts.push(
         <span
           key={`highlight-${field}-${index}`}
-          className="relative group cursor-pointer px-0.5 rounded"
+          className="relative group cursor-pointer px-0.5 rounded border-2 border-dashed border-amber-400/50 hover:border-amber-400 transition-colors"
           style={{ backgroundColor: ann.highlight || undefined }}
+          onClick={(e) => onHighlightClick(cardId, ann, e)}
         >
           {text.slice(ann.startOffset, ann.endOffset)}
           {ann.note && (
