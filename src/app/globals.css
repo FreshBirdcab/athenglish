@@ -2,60 +2,93 @@
 
 @plugin "tailwindcss-animate";
 
+/* 古希腊风格主题 - AthEnglish */
 :root {
-  --background: 0 0% 100%;
-  --foreground: 215 25% 15%;
-  --card: 0 0% 100%;
-  --card-foreground: 215 25% 15%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 215 25% 15%;
-  --primary: 213 92% 46%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 213 30% 96%;
-  --secondary-foreground: 215 25% 15%;
-  --muted: 213 20% 96%;
-  --muted-foreground: 215 15% 45%;
-  --accent: 213 30% 96%;
-  --accent-foreground: 215 25% 15%;
-  --destructive: 0 85% 55%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 213 20% 90%;
-  --input: 213 20% 90%;
-  --ring: 213 92% 46%;
-  --radius: 0.75rem;
-  --chart-1: 213 92% 46%;
-  --chart-2: 165 75% 35%;
-  --chart-3: 45 90% 50%;
-  --chart-4: 280 70% 45%;
-  --chart-5: 320 80% 55%;
+  /* 主背景 - 象牙白/米色 */
+  --background: 40 30% 96%;
+  --foreground: 35 25% 15%;
+
+  /* 卡片背景 */
+  --card: 40 20% 98%;
+  --card-foreground: 35 25% 15%;
+
+  /* 弹窗 */
+  --popover: 40 20% 100%;
+  --popover-foreground: 35 25% 15%;
+
+  /* 主色 - 金色/琥珀色 (雅典娜金色) */
+  --primary: 38 75% 45%;
+  --primary-foreground: 40 20% 98%;
+
+  /* 次色 - 橄榄绿/大地色 */
+  --secondary: 35 30% 88%;
+  --secondary-foreground: 35 25% 20%;
+
+  /* 弱化色 - 浅棕 */
+  --muted: 35 20% 90%;
+  --muted-foreground: 35 15% 45%;
+
+  /* 强调色 - 爱琴海蓝 */
+  --accent: 200 55% 45%;
+  --accent-foreground: 200 30% 98%;
+
+  /* 陶土红 - 用于重要强调 */
+  --destructive: 15 65% 50%;
+  --destructive-foreground: 40 20% 98%;
+
+  /* 边框 - 淡金色 */
+  --border: 38 20% 80%;
+  --input: 38 20% 85%;
+  --ring: 38 75% 45%;
+
+  /* 圆角 - 略微圆润 */
+  --radius: 0.6rem;
+
+  /* 图表颜色 */
+  --chart-1: 38 75% 45%;
+  --chart-2: 35 40% 50%;
+  --chart-3: 200 55% 45%;
+  --chart-4: 160 35% 40%;
+  --chart-5: 30 60% 55%;
 }
 
-/* Dark mode disabled - forcing light theme */
+/* 暗色主题 - 夜晚的雅典 */
 [data-theme="dark"] {
-  --background: 215 30% 8%;
-  --foreground: 0 0% 95%;
-  --card: 215 25% 12%;
-  --card-foreground: 0 0% 95%;
-  --popover: 215 25% 12%;
-  --popover-foreground: 0 0% 95%;
-  --primary: 213 92% 60%;
-  --primary-foreground: 215 25% 10%;
-  --secondary: 215 25% 18%;
-  --secondary-foreground: 0 0% 95%;
-  --muted: 215 25% 15%;
-  --muted-foreground: 215 10% 60%;
-  --accent: 215 25% 18%;
-  --accent-foreground: 0 0% 95%;
-  --destructive: 0 75% 50%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 215 20% 25%;
-  --input: 215 20% 25%;
-  --ring: 213 92% 60%;
-  --chart-1: 213 92% 60%;
-  --chart-2: 165 75% 45%;
-  --chart-3: 45 90% 55%;
-  --chart-4: 280 70% 55%;
-  --chart-5: 320 80% 60%;
+  --background: 220 25% 8%;
+  --foreground: 40 20% 92%;
+
+  --card: 220 20% 10%;
+  --card-foreground: 40 20% 92%;
+
+  --popover: 220 18% 12%;
+  --popover-foreground: 40 20% 92%;
+
+  /* 暗色主题下更亮金色 */
+  --primary: 38 80% 55%;
+  --primary-foreground: 220 20% 10%;
+
+  --secondary: 220 15% 15%;
+  --secondary-foreground: 40 20% 88%;
+
+  --muted: 220 15% 12%;
+  --muted-foreground: 40 10% 60%;
+
+  /* 深蓝爱琴海 */
+  --accent: 200 60% 50%;
+  --accent-foreground: 220 20% 10%;
+
+  --destructive: 15 70% 55%;
+  --destructive-foreground: 40 20% 92%;
+
+  --border: 220 15% 18%;
+  --input: 220 15% 20%;
+  --ring: 38 80% 55%;
+
+  --chart-1: 38 80% 55%;
+  --chart-2: 35 45% 55%;
+  --chart-3: 200 60% 50%;
+  --chart-4: 160 40% 45%;
+  --chart-5: 30 65% 60%;
 }
 
 @theme inline {
@@ -78,10 +111,10 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 3px);
+  --radius-md: calc(var(--radius) - 1px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) + 2px);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -99,24 +132,187 @@
   }
 }
 
-/* 自定义动画 */
+/* ==================== 古希腊风格装饰元素 ==================== */
+
+/* 装饰性分隔线 - 希腊钥匙图案 */
+.greek-divider {
+  position: relative;
+  height: 20px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    hsl(var(--border)) 20%,
+    hsl(var(--border)) 80%,
+    transparent 100%
+  );
+}
+
+.greek-divider::before {
+  content: '⚜';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: hsl(var(--primary));
+  font-size: 1.2rem;
+  background: hsl(var(--background));
+  padding: 0 0.5rem;
+}
+
+/* 装饰性边框 - 希腊回纹 */
+.greek-border {
+  position: relative;
+  border: 2px solid hsl(var(--border));
+  border-radius: var(--radius);
+}
+
+.greek-border::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid hsl(var(--primary) / 0.3);
+  border-radius: calc(var(--radius) - 2px);
+  pointer-events: none;
+}
+
+/* 标题装饰 */
+.title-decoration {
+  position: relative;
+  display: inline-block;
+}
+
+.title-decoration::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--primary)),
+    hsl(var(--primary) / 0.5),
+    transparent
+  );
+}
+
+/* ==================== 动画效果 ==================== */
+
+/* 淡入动画 */
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
+/* 向上滑入 */
 @keyframes slide-up {
-  from { transform: translateY(10px); opacity: 0; }
+  from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
+/* 向下滑入 */
+@keyframes slide-down {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* 缩放弹入 */
+@keyframes scale-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* 呼吸光晕 */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 5px hsl(var(--primary) / 0.3); }
+  50% { box-shadow: 0 0 20px hsl(var(--primary) / 0.5); }
+}
+
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* 希腊钥匙旋转 */
+@keyframes key-pattern {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 渐变流动 */
+@keyframes gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+  animation: fade-in 0.4s ease-out forwards;
 }
 
 .animate-slide-up {
-  animation: slide-up 0.3s ease-out;
+  animation: slide-up 0.4s ease-out forwards;
 }
+
+.animate-slide-down {
+  animation: slide-down 0.4s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out forwards;
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 交错动画延迟 */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+
+/* 渐变文字 */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 渐变背景按钮 */
+.btn-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.8));
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.btn-gradient:hover::before {
+  transform: translateX(100%);
+}
+
+/* ==================== 卡片效果 ==================== */
 
 /* 卡片翻转效果 */
 .flip-card {
@@ -161,54 +357,76 @@
   background: hsl(var(--foreground));
 }
 
-/* 磨砂玻璃效果 */
+/* 磨砂玻璃效果 - 古希腊风格 */
 .glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 250, 245, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid hsl(var(--border));
 }
 
 [data-theme="dark"] .glass {
-  background: rgba(20, 25, 40, 0.9);
+  background: rgba(20, 25, 35, 0.9);
   border-bottom: 1px solid hsl(var(--border));
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 252, 248, 0.9);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.12), 0 2px 6px -4px rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 4px 12px -2px rgba(180, 140, 80, 0.1),
+    0 2px 6px -4px rgba(180, 140, 80, 0.08);
 }
 
 [data-theme="dark"] .glass-card {
-  background: rgba(30, 35, 50, 0.9);
+  background: rgba(25, 30, 45, 0.9);
   border: 1px solid hsl(var(--border));
 }
 
 /* 书籍卡片悬浮动画 */
 .book-card {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .book-card:hover {
   transform: translateY(-8px) scale(1.02);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 20px 25px -5px rgba(180, 140, 80, 0.15),
+    0 8px 10px -6px rgba(180, 140, 80, 0.1);
 }
 
-.book-card:active {
-  transform: translateY(-4px) scale(1.01);
+.book-card:hover::before {
+  opacity: 1;
+}
+
+.book-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 /* 内容卡片悬浮动画 */
 .card-hover {
-  transition: all 0.25s ease-out;
+  transition: all 0.3s ease-out;
 }
 
 .card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 15px -3px rgba(180, 140, 80, 0.1),
+    0 4px 6px -4px rgba(180, 140, 80, 0.08);
 }
 
 /* 居中容器 */
@@ -266,4 +484,84 @@
 
 .btn-glow:hover::before {
   left: 100%;
+}
+
+/* 高亮标记 - 古羊皮纸风格 */
+.highlight-parchment {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(45 60% 85% / 0.4) 0%,
+    hsl(45 60% 85% / 0.4) 100%,
+    transparent 100%
+  );
+  padding: 2px 0;
+}
+
+/* 选中文字高亮 - 古希腊金 */
+::selection {
+  background: hsl(38 75% 60% / 0.4);
+  color: hsl(var(--foreground));
+}
+
+/* 链接样式 */
+a {
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: hsl(var(--primary));
+}
+
+/* 输入框聚焦效果 */
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+}
+
+/* 加载骨架屏 */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 古希腊风格徽章 */
+.badge-greek {
+  background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.1));
+  border: 1px solid hsl(var(--primary) / 0.3);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* 进度条样式 */
+progress {
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+progress::-webkit-progress-bar {
+  background: hsl(var(--muted));
+}
+
+progress::-webkit-progress-value {
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+  transition: width 0.3s ease;
+}
+
+/* Tab 选中指示器 */
+.tab-indicator {
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
 }
