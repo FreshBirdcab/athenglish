@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { BookOpen, User, LogOut, Sparkles } from "lucide-react"
+import { User, LogOut, Sparkles } from "lucide-react"
 
 export function Header() {
   const { data: session, status } = useSession()
@@ -16,8 +17,14 @@ export function Header() {
       <div className="content-container flex h-16 items-center">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative">
-              <BookOpen className="h-6 w-6 text-primary transition-transform group-hover:scale-110" />
+            <div className="relative w-7 h-7">
+              <Image
+                src="/icon.svg"
+                alt="AthEnglish"
+                width={28}
+                height={28}
+                className="transition-transform group-hover:scale-110"
+              />
               <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <span className="text-xl font-bold gradient-text">AthEnglish</span>
