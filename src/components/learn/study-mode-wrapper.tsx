@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Layout, List } from "lucide-react"
@@ -56,6 +56,20 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   const [noteText, setNoteText] = useState("")
   const [showMenu, setShowMenu] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false)
+        window.getSelection()?.removeAllRanges()
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showMenu])
 
   // 加载所有卡片的批注
   useEffect(() => {
@@ -202,6 +216,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
       {/* 高亮/批注菜单 - 两个模式共用 */}
       {showMenu && selectedText && (
         <div
+          ref={menuRef}
           className="fixed z-50 bg-white rounded-lg shadow-lg border p-2 flex gap-1"
           style={{
             left: menuPosition.x,
