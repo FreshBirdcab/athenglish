@@ -19,7 +19,12 @@
       "Bash(npm run dev)",
       "Bash(sqlite3:*)",
       "Bash(python -c:*)",
-      "Bash(npx prisma db push:*)"
+      "Bash(npx prisma db push:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(cmd /c \"rd /s /q node_modules\\\\.prisma\")",
+      "Bash(npm uninstall prisma @prisma/client:*)",
+      "Bash(wmic:*)",
+      "Bash(ping:*)"
     ]
   }
 }
