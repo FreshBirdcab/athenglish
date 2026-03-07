@@ -61,6 +61,9 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   // 点击外部关闭菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      // 如果 Popover 打开中，不关闭菜单
+      if (showNoteInput) return
+
       if (showMenu && menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowMenu(false)
         window.getSelection()?.removeAllRanges()

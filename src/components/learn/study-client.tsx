@@ -263,7 +263,7 @@ export function StudyClient({
       parts.push(
         <span
           key={`highlight-${field}-${index}`}
-          className="relative group cursor-pointer px-0.5 rounded border-2 border-dashed border-amber-400/50 hover:border-amber-400 transition-colors"
+          className={`relative group cursor-pointer px-0.5 rounded ${ann.note ? "border-b-2 border-dashed border-amber-500" : ""}`}
           style={{ backgroundColor: ann.highlight || undefined }}
           onClick={(e) => onHighlightClick(cardId, ann, e)}
         >
