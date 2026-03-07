@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --use-npm --no-git)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma init --datasource-provider sqlite)",
+      "Bash(npx prisma migrate dev:*)",
+      "Bash(npx prisma generate)",
+      "Bash(npm run seed)",
+      "Bash(git init:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

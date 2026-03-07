@@ -1,0 +1,235 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  avatar        String?
+  role          String    @default("user") // user, admin
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // 关系
+  progress      UserProgress[]
+  reviews       UserReview[]
+  favorites     Favorite[]
+  comments      Comment[]
+  annotations   Annotation[]
+  achievements  UserAchievement[]
+  streaks       Streak[]
+}
+
+// 书本表
+model Book {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  cover       String?
+  type        String   // vocabulary, sentence, corpus
+  subType     String?  // spoken, writing_core, writing_topic, reading, writing_pattern, speaking
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关系
+  chapters    Chapter[]
+}
+
+// 章节表
+model Chapter {
+  id            String   @id @default(uuid())
+  bookId        String
+  name          String
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 关系
+  book          Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  subChapters   SubChapter[]
+}
+
+model SubChapter {
+  id            String   @id @default(uuid())
+  chapterId     String
+  name          String
+  description   String?
+  filePath      String?  // xlsx 文件相对路径
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 关系
+  chapter       Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  cards         Card[]
+  comments      Comment[]
+}
+
+// 卡片内容表
+model Card {
+  id              String   @id @default(uuid())
+  subChapterId    String
+  uuid            String   @unique // 唯一标识，用于数据更新时保持记录
+  contentPrimary  String   // 单词/句型/问题
+  contentSecondary String? // 中文释义/句型模板
+  usageNote       String?  // 用法说明
+  exampleEn       String?  // 英文例句
+  exampleZh       String?  // 中文例句
+  analysis        String?  // 语言点分析（语料模块）
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // 关系
+  subChapter     SubChapter     @relation(fields: [subChapterId], references: [id], onDelete: Cascade)
+  userProgress   UserProgress[]
+  reviews        UserReview[]
+  favorites      Favorite[]
+  annotations    Annotation[]
+  comments       Comment[]
+}
+
+// 用户学习进度
+model UserProgress {
+  id            String   @id @default(uuid())
+  userId        String
+  cardId        String
+  status        String   @default("new") // new, learning, mastered
+  learnedAt     DateTime @default(now())
+  lastReviewedAt DateTime?
+
+  // 关系
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card          Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+}
+
+// SRS 复习记录
+model UserReview {
+  id            String   @id @default(uuid())
+  userId        String
+  cardId        String
+  easeFactor    Float    @default(2.5) // 艾宾浩斯 ease factor
+  interval      Int      @default(0)   // 间隔天数
+  repetitions   Int      @default(0)   // 复习次数
+  nextReviewAt  DateTime @default(now())
+  lastReviewAt  DateTime @default(now())
+
+  // 关系
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card          Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
+}
+
+// 收藏/生词本
+model Favorite {
+  id          String   @id @default(uuid())
+  userId      String
+  cardId      String
+  type        String   @default("word") // word: 生词本, sentence: 句型库
+  note        String?
+  createdAt   DateTime @default(now())
+
+  // 关系
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card        Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId, type])
+}
+
+// 评论
+model Comment {
+  id            String   @id @default(uuid())
+  userId        String
+  subChapterId  String?
+  cardId        String?
+  parentId      String?
+  content       String
+  isPublic      Boolean  @default(true)
+  likes         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 关系
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subChapter    SubChapter? @relation(fields: [subChapterId], references: [id], onDelete: Cascade)
+  card          Card?     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  parent        Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies       Comment[] @relation("CommentReplies")
+}
+
+// 划线批注
+model Annotation {
+  id            String   @id @default(uuid())
+  userId        String
+  cardId        String
+  startOffset   Int
+  endOffset     Int
+  highlight     String?  // 颜色
+  note          String?
+  isPublic      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 关系
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card          Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+// 成就
+model Achievement {
+  id          String   @id @default(uuid())
+  code        String   @unique // 成就代码
+  name        String
+  description String?
+  icon        String?
+  condition   String?  // 触发条件
+  createdAt   DateTime @default(now())
+
+  // 关系
+  users       UserAchievement[]
+}
+
+// 用户成就
+model UserAchievement {
+  id              String   @id @default(uuid())
+  userId          String
+  achievementId   String
+  unlockedAt      DateTime @default(now())
+
+  // 关系
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement     Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+// 连续打卡
+model Streak {
+  id          String   @id @default(uuid())
+  userId      String
+  currentStreak Int    @default(0)
+  longestStreak Int    @default(0)
+  lastActiveDate DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关系
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+}
