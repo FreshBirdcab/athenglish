@@ -67,6 +67,8 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
   // 用于跟踪本轮已计数的卡片，避免重复计数
   const countedCardsRef = useRef<Set<string>>(new Set())
+  // 用于标记是否刚刚重置过
+  const justResetRef = useRef(false)
 
   // 切换卡片时清除之前卡片的答题状态
   useEffect(() => {
@@ -100,6 +102,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
     // 只有当所有挖空都回答了才更新历史
     if (answeredCount === totalFills) {
+      // 如果刚刚重置过，清除标记和计数记录，允许重新计数
+      if (justResetRef.current) {
+        justResetRef.current = false
+        countedCardsRef.current.delete(activeFillCardId)
+      }
+
       // 检查是否已在本轮计数过
       if (countedCardsRef.current.has(activeFillCardId)) {
         return
@@ -218,8 +226,10 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
             const currentAnn = sorted[currentIndex]
             if (currentAnn) {
               if (currentAnn.field === "primary") fieldText = card.contentPrimary
+              else if (currentAnn.field === "secondary") fieldText = card.contentSecondary || ""
               else if (currentAnn.field === "usageNote") fieldText = card.usageNote || ""
               else if (currentAnn.field === "exampleEn") fieldText = card.exampleEn || ""
+              else if (currentAnn.field === "exampleZh") fieldText = card.exampleZh || ""
               else if (currentAnn.field === "analysis") fieldText = card.analysis || ""
 
               const answer = fieldText.slice(currentAnn.startOffset, currentAnn.endOffset).trim().toLowerCase()
@@ -395,6 +405,8 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
   // 重置卡片状态
   const resetFillCard = (cardId: string) => {
+    // 标记刚刚重置过
+    justResetRef.current = true
     // 清空挖空内容
     setFillModeCards(prev => {
       const cardData = prev[cardId]
@@ -566,8 +578,10 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
   const getCardFields = (card: Card) => {
     const fields: { key: string; text: string }[] = []
     fields.push({ key: "primary", text: card.contentPrimary })
+    if (card.contentSecondary) fields.push({ key: "secondary", text: card.contentSecondary })
     if (card.usageNote) fields.push({ key: "usageNote", text: card.usageNote })
     if (card.exampleEn) fields.push({ key: "exampleEn", text: card.exampleEn })
+    if (card.exampleZh) fields.push({ key: "exampleZh", text: card.exampleZh })
     if (card.analysis) fields.push({ key: "analysis", text: card.analysis })
     return fields
   }
@@ -691,17 +705,26 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
             <CardContent className="py-2" ref={el => { if (el) contentRefs.current[card.id] = el }}>
               {/* 词汇卡片布局 */}
               {bookType === "vocabulary" && (
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <h3 className="text-2xl font-bold text-primary mb-1" data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
+                <div className="space-y-2">
+                  {/* 第一列：单词 */}
+                  <div data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
+                    <h3 className="text-2xl font-bold text-primary">
                       {isFillMode
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : renderHighlightedText(card.contentPrimary, card.id, "primary")}
                     </h3>
-                    <p className="text-lg text-muted-foreground">{card.contentSecondary}</p>
                   </div>
+                  {/* 第二列：释义 */}
+                  {card.contentSecondary && (
+                    <div data-field="secondary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "secondary", card.contentSecondary || "")} className="text-muted-foreground">
+                      <p className="text-lg">
+                        {card.contentSecondary}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第三列：用法解释 */}
                   {card.usageNote && (
-                    <div className="p-2 bg-muted/50 rounded-lg" data-field="usageNote" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "usageNote", card.usageNote || "")}>
+                    <div data-field="usageNote" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "usageNote", card.usageNote || "")} className="text-muted-foreground">
                       <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
@@ -709,16 +732,22 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                       </p>
                     </div>
                   )}
+                  {/* 第四列：例句英文 */}
                   {card.exampleEn && (
-                    <div className="border-l-4 border-primary pl-3" data-field="exampleEn" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleEn", card.exampleEn || "")}>
-                      <p className="text-sm italic">
+                    <div data-field="exampleEn" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleEn", card.exampleEn || "")} className="text-muted-foreground">
+                      <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : renderHighlightedText(card.exampleEn, card.id, "exampleEn")}
                       </p>
-                      {card.exampleZh && (
-                        <p className="text-xs text-muted-foreground mt-1">{card.exampleZh}</p>
-                      )}
+                    </div>
+                  )}
+                  {/* 第五列：例句中文 */}
+                  {card.exampleZh && (
+                    <div data-field="exampleZh" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleZh", card.exampleZh || "")} className="text-muted-foreground">
+                      <p className="text-xs">
+                        {card.exampleZh}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -726,38 +755,49 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
               {/* 句型卡片布局 */}
               {bookType === "sentence" && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-primary/5 rounded-xl border" data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
-                    <p className="text-xl font-semibold text-primary">
+                <div className="space-y-2">
+                  {/* 第一列：句型模板 */}
+                  <div data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
+                    <p className="text-xl font-bold text-primary">
                       {isFillMode
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : renderHighlightedText(card.contentPrimary, card.id, "primary")}
                     </p>
-                    {card.contentSecondary && (
-                      <p className="text-sm text-muted-foreground mt-1">{card.contentSecondary}</p>
-                    )}
                   </div>
+                  {/* 第二列：中文句型 */}
+                  {card.contentSecondary && (
+                    <div data-field="secondary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "secondary", card.contentSecondary || "")} className="text-muted-foreground">
+                      <p className="text-sm">
+                        {card.contentSecondary}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第三列：用法说明 */}
                   {card.usageNote && (
-                    <div className="space-y-1" data-field="usageNote" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "usageNote", card.usageNote || "")}>
-                      <p className="text-xs font-medium">用法说明</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div data-field="usageNote" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "usageNote", card.usageNote || "")} className="text-muted-foreground">
+                      <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : renderHighlightedText(card.usageNote, card.id, "usageNote")}
                       </p>
                     </div>
                   )}
+                  {/* 第四列：例句英文 */}
                   {card.exampleEn && (
-                    <div className="space-y-1" data-field="exampleEn" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleEn", card.exampleEn || "")}>
-                      <p className="text-xs font-medium">例句</p>
-                      <p className="text-sm italic border-l-2 pl-2 border-primary">
+                    <div data-field="exampleEn" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleEn", card.exampleEn || "")} className="text-muted-foreground">
+                      <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : renderHighlightedText(card.exampleEn, card.id, "exampleEn")}
                       </p>
-                      {card.exampleZh && (
-                        <p className="text-xs text-muted-foreground">{card.exampleZh}</p>
-                      )}
+                    </div>
+                  )}
+                  {/* 第五列：例句中文 */}
+                  {card.exampleZh && (
+                    <div data-field="exampleZh" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleZh", card.exampleZh || "")} className="text-muted-foreground">
+                      <p className="text-xs">
+                        {card.exampleZh}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -765,44 +805,55 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
               {/* 语料卡片布局 */}
               {bookType === "corpus" && (
-                <div className="space-y-3">
-                  <div className="text-center py-1" data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
-                    <p className="text-base">
+                <div className="space-y-2">
+                  {/* 第一列：问题 */}
+                  <div data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
+                    <p className="text-lg font-bold text-primary">
                       {isFillMode
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : renderHighlightedText(card.contentPrimary, card.id, "primary")}
                     </p>
-                    {card.contentSecondary && (
-                      <p className="text-sm text-muted-foreground">{card.contentSecondary}</p>
-                    )}
                   </div>
+                  {/* 第二列：正式英文 */}
+                  {card.contentSecondary && (
+                    <div data-field="secondary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "secondary", card.contentSecondary || "")} className="text-muted-foreground">
+                      <p className="text-sm">
+                        {card.contentSecondary}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第三列：正式中文 */}
                   {card.usageNote && (
-                    <div className="p-2 bg-muted/50 rounded-lg" data-field="usageNote" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "usageNote", card.usageNote || "")}>
-                      <p className="text-xs font-medium">要点</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div data-field="usageNote" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "usageNote", card.usageNote || "")} className="text-muted-foreground">
+                      <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : renderHighlightedText(card.usageNote, card.id, "usageNote")}
                       </p>
                     </div>
                   )}
+                  {/* 第四列：口语英文 */}
                   {card.exampleEn && (
-                    <div className="space-y-1" data-field="exampleEn" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleEn", card.exampleEn || "")}>
-                      <p className="text-xs font-medium">示例</p>
+                    <div data-field="exampleEn" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleEn", card.exampleEn || "")} className="text-muted-foreground">
                       <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : renderHighlightedText(card.exampleEn, card.id, "exampleEn")}
                       </p>
-                      {card.exampleZh && (
-                        <p className="text-xs text-muted-foreground">{card.exampleZh}</p>
-                      )}
                     </div>
                   )}
+                  {/* 第五列：口语中文 */}
+                  {card.exampleZh && (
+                    <div data-field="exampleZh" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "exampleZh", card.exampleZh || "")} className="text-muted-foreground">
+                      <p className="text-xs">
+                        {card.exampleZh}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第六列：分析 */}
                   {card.analysis && (
-                    <div className="p-2 bg-primary/5 rounded-lg" data-field="analysis" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "analysis", card.analysis || "")}>
-                      <p className="text-xs font-medium">分析</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div data-field="analysis" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "analysis", card.analysis || "")} className="text-muted-foreground">
+                      <p className="text-sm">
                         {isFillMode
                           ? renderFillInText(card.analysis, card.id, "analysis")
                           : renderHighlightedText(card.analysis, card.id, "analysis")}

@@ -105,6 +105,8 @@ export function StudyClient({
 
   // 用于跟踪本轮已计数的卡片，避免重复计数
   const countedCardsRef = useRef<Set<string>>(new Set())
+  // 用于标记是否刚刚重置过
+  const justResetRef = useRef(false)
 
   // 监听答题状态变化，更新历史记录
   useEffect(() => {
@@ -124,6 +126,12 @@ export function StudyClient({
 
     // 只有当所有挖空都回答了才更新历史
     if (answeredCount === totalFills) {
+      // 如果刚刚重置过，清除标记和计数记录，允许重新计数
+      if (justResetRef.current) {
+        justResetRef.current = false
+        countedCardsRef.current.delete(currentCard.id)
+      }
+
       // 检查是否已在本轮计数过
       if (countedCardsRef.current.has(currentCard.id)) {
         return
@@ -246,8 +254,10 @@ export function StudyClient({
             const currentAnn = sorted[currentIdx]
             if (currentAnn) {
               if (currentAnn.field === "primary") fieldText = currentCard.contentPrimary
+              else if (currentAnn.field === "secondary") fieldText = currentCard.contentSecondary || ""
               else if (currentAnn.field === "usageNote") fieldText = currentCard.usageNote || ""
               else if (currentAnn.field === "exampleEn") fieldText = currentCard.exampleEn || ""
+              else if (currentAnn.field === "exampleZh") fieldText = currentCard.exampleZh || ""
               else if (currentAnn.field === "analysis") fieldText = currentCard.analysis || ""
 
               const answer = fieldText.slice(currentAnn.startOffset, currentAnn.endOffset).trim().toLowerCase()
@@ -446,6 +456,8 @@ export function StudyClient({
   // 重置卡片状态
   const resetFillCard = () => {
     if (currentCard) {
+      // 标记刚刚重置过
+      justResetRef.current = true
       // 清空挖空内容
       setFillModeCards(prev => {
         const cardData = prev[currentCard.id]
@@ -571,13 +583,17 @@ export function StudyClient({
     const contentElement = contentRef.current
     if (!contentElement || !currentCard) return
 
-    // 查找选中内容属于哪个字段
+    // 查找选中内容属于哪个字段（跳过容器类型如vocabulary/sentence/corpus）
     let fieldElement = selection.anchorNode?.parentElement
     let field = "primary"
     while (fieldElement && fieldElement !== contentElement) {
       if (fieldElement.dataset.field) {
-        field = fieldElement.dataset.field
-        break
+        const fieldValue = fieldElement.dataset.field
+        // 跳过容器类型的data-field
+        if (fieldValue !== "vocabulary" && fieldValue !== "sentence" && fieldValue !== "corpus") {
+          field = fieldValue
+          break
+        }
       }
       fieldElement = fieldElement.parentElement
     }
@@ -585,8 +601,10 @@ export function StudyClient({
     // 获取该字段的原始文本内容
     let fieldText = ""
     if (field === "primary") fieldText = currentCard.contentPrimary
+    else if (field === "secondary") fieldText = currentCard.contentSecondary || ""
     else if (field === "usageNote") fieldText = currentCard.usageNote || ""
     else if (field === "exampleEn") fieldText = currentCard.exampleEn || ""
+    else if (field === "exampleZh") fieldText = currentCard.exampleZh || ""
     else if (field === "analysis") fieldText = currentCard.analysis || ""
 
     // 统计字段中该文本出现的次数
@@ -890,34 +908,53 @@ export function StudyClient({
               <CardContent onMouseUp={handleTextSelect} ref={contentRef}>
                 {/* 词汇卡片布局 */}
                 {bookType === "vocabulary" && (
-                  <div className="space-y-4">
-                    <div className="text-center py-2" data-field="primary">
-                      <CardTitle className="text-3xl font-bold text-primary mb-2">
+                  <div className="space-y-2">
+                    {/* 第一列：单词 */}
+                    <div data-field="primary">
+                      <CardTitle className="text-3xl font-bold text-primary">
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
                           : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
                       </CardTitle>
-                      <p className="text-xl text-muted-foreground">{currentCard.contentSecondary}</p>
                     </div>
+                    {/* 第二列：释义 */}
+                    {currentCard.contentSecondary && (
+                      <div data-field="secondary" className="text-muted-foreground">
+                        <p className="text-xl">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
+                            : renderHighlightedText(currentCard.contentSecondary, currentCard.id, "secondary")}
+                        </p>
+                      </div>
+                    )}
+                    {/* 第三列：用法解释 */}
                     {currentCard.usageNote && (
-                      <div className="p-3 bg-muted/50 rounded-lg" data-field="usageNote">
-                        <p className="text-sm">
+                      <div data-field="usageNote" className="text-muted-foreground">
+                        <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
                             : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
                         </p>
                       </div>
                     )}
+                    {/* 第四列：例句英文 */}
                     {currentCard.exampleEn && (
-                      <div className="border-l-4 border-primary pl-4" data-field="exampleEn">
-                        <p className="text-base italic">
+                      <div data-field="exampleEn" className="text-muted-foreground">
+                        <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
                             : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
                         </p>
-                        {currentCard.exampleZh && (
-                          <p className="text-sm text-muted-foreground mt-1">{currentCard.exampleZh}</p>
-                        )}
+                      </div>
+                    )}
+                    {/* 第五列：例句中文 */}
+                    {currentCard.exampleZh && (
+                      <div data-field="exampleZh" className="text-muted-foreground">
+                        <p className="text-sm">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
+                            : renderHighlightedText(currentCard.exampleZh, currentCard.id, "exampleZh")}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -925,38 +962,53 @@ export function StudyClient({
 
                 {/* 句型卡片布局 */}
                 {bookType === "sentence" && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-primary/5 rounded-xl border" data-field="primary">
-                      <p className="text-2xl font-semibold text-primary">
+                  <div className="space-y-2">
+                    {/* 第一列：句型模板 */}
+                    <div data-field="primary">
+                      <p className="text-2xl font-bold text-primary">
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
                           : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
                       </p>
-                      {currentCard.contentSecondary && (
-                        <p className="text-muted-foreground mt-2">{currentCard.contentSecondary}</p>
-                      )}
                     </div>
+                    {/* 第二列：中文句型 */}
+                    {currentCard.contentSecondary && (
+                      <div data-field="secondary" className="text-muted-foreground">
+                        <p className="text-base">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
+                            : renderHighlightedText(currentCard.contentSecondary, currentCard.id, "secondary")}
+                        </p>
+                      </div>
+                    )}
+                    {/* 第三列：用法说明 */}
                     {currentCard.usageNote && (
-                      <div className="space-y-2" data-field="usageNote">
-                        <p className="text-sm font-medium">用法说明</p>
-                        <p className="text-sm text-muted-foreground">
+                      <div data-field="usageNote" className="text-muted-foreground">
+                        <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
                             : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
                         </p>
                       </div>
                     )}
+                    {/* 第四列：例句英文 */}
                     {currentCard.exampleEn && (
-                      <div className="space-y-2" data-field="exampleEn">
-                        <p className="text-sm font-medium">例句</p>
-                        <p className="text-base italic border-l-2 pl-3 border-primary">
+                      <div data-field="exampleEn" className="text-muted-foreground">
+                        <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
                             : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
                         </p>
-                        {currentCard.exampleZh && (
-                          <p className="text-sm text-muted-foreground">{currentCard.exampleZh}</p>
-                        )}
+                      </div>
+                    )}
+                    {/* 第五列：例句中文 */}
+                    {currentCard.exampleZh && (
+                      <div data-field="exampleZh" className="text-muted-foreground">
+                        <p className="text-sm">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
+                            : renderHighlightedText(currentCard.exampleZh, currentCard.id, "exampleZh")}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -964,44 +1016,59 @@ export function StudyClient({
 
                 {/* 语料卡片布局 */}
                 {bookType === "corpus" && (
-                  <div className="space-y-4">
-                    <div className="text-center py-2" data-field="primary">
-                      <CardTitle className="text-xl font-normal mb-2">
+                  <div className="space-y-2">
+                    {/* 第一列：问题 */}
+                    <div data-field="primary">
+                      <CardTitle className="text-xl font-bold text-primary">
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
                           : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
                       </CardTitle>
-                      {currentCard.contentSecondary && (
-                        <p className="text-muted-foreground">{currentCard.contentSecondary}</p>
-                      )}
                     </div>
+                    {/* 第二列：正式英文回答 */}
+                    {currentCard.contentSecondary && (
+                      <div data-field="secondary" className="text-muted-foreground">
+                        <p className="text-base">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
+                            : renderHighlightedText(currentCard.contentSecondary, currentCard.id, "secondary")}
+                        </p>
+                      </div>
+                    )}
+                    {/* 第三列：正式中文回答 */}
                     {currentCard.usageNote && (
-                      <div className="p-3 bg-muted/50 rounded-lg" data-field="usageNote">
-                        <p className="text-sm font-medium">要点</p>
-                        <p className="text-sm text-muted-foreground mt-1">
+                      <div data-field="usageNote" className="text-muted-foreground">
+                        <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
                             : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
                         </p>
                       </div>
                     )}
+                    {/* 第四列：口语英文回答 */}
                     {currentCard.exampleEn && (
-                      <div className="space-y-2" data-field="exampleEn">
-                        <p className="text-sm font-medium">示例</p>
+                      <div data-field="exampleEn" className="text-muted-foreground">
                         <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
                             : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
                         </p>
-                        {currentCard.exampleZh && (
-                          <p className="text-sm text-muted-foreground">{currentCard.exampleZh}</p>
-                        )}
                       </div>
                     )}
+                    {/* 第五列：口语中文回答 */}
+                    {currentCard.exampleZh && (
+                      <div data-field="exampleZh" className="text-muted-foreground">
+                        <p className="text-base">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
+                            : renderHighlightedText(currentCard.exampleZh, currentCard.id, "exampleZh")}
+                        </p>
+                      </div>
+                    )}
+                    {/* 第六列：分析 */}
                     {currentCard.analysis && (
-                      <div className="p-3 bg-primary/5 rounded-lg" data-field="analysis">
-                        <p className="text-sm font-medium">分析</p>
-                        <p className="text-sm text-muted-foreground mt-1">
+                      <div data-field="analysis" className="text-muted-foreground">
+                        <p className="text-base">
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.analysis, currentCard.id, "analysis")
                             : renderHighlightedText(currentCard.analysis, currentCard.id, "analysis")}

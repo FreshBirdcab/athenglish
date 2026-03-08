@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -64,6 +64,8 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
   // 用于跟踪本轮已计数的卡片，避免重复计数
   const countedCardsRef = useRef<Set<string>>(new Set())
+  // 用于标记是否刚刚重置过
+  const justResetRef = useRef<string | null>(null)
 
   // 监听答题状态变化，更新历史记录
   useEffect(() => {
@@ -83,6 +85,12 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
       // 只有当所有挖空都回答了才更新历史
       if (answeredCount === totalFills) {
+        // 如果刚刚重置过这个卡片，清除标记和计数记录，允许重新计数
+        if (justResetRef.current === cardId) {
+          justResetRef.current = null
+          countedCardsRef.current.delete(cardId)
+        }
+
         // 检查是否已在本轮计数过
         if (countedCardsRef.current.has(cardId)) {
           return
@@ -275,6 +283,8 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
   // 重置卡片状态
   const resetCard = (cardId: string) => {
+    // 标记刚刚重置过
+    justResetRef.current = cardId
     // 清空挖空内容
     setFillModeCards(prev => {
       const cardData = prev[cardId]
@@ -307,7 +317,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
     // 收集每个字段的高亮
     const fieldAnnotations: { field: string; annotations: Annotation[] }[] = []
-    const fields = ["primary", "usageNote", "exampleEn", "analysis"]
+    const fields = ["primary", "secondary", "usageNote", "exampleEn", "exampleZh", "analysis"]
     fields.forEach(field => {
       const fieldAnns = cardAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
       if (fieldAnns.length > 0) {
@@ -331,8 +341,10 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
               // 获取原文来验证
               let fieldText = ""
               if (ann.field === "primary") fieldText = cards.find(c => c.id === cardId)?.contentPrimary || ""
+              else if (ann.field === "secondary") fieldText = cards.find(c => c.id === cardId)?.contentSecondary || ""
               else if (ann.field === "usageNote") fieldText = cards.find(c => c.id === cardId)?.usageNote || ""
               else if (ann.field === "exampleEn") fieldText = cards.find(c => c.id === cardId)?.exampleEn || ""
+              else if (ann.field === "exampleZh") fieldText = cards.find(c => c.id === cardId)?.exampleZh || ""
               else if (ann.field === "analysis") fieldText = cards.find(c => c.id === cardId)?.analysis || ""
 
               const correctAnswer = fieldText.slice(ann.startOffset, ann.endOffset).trim().toLowerCase()
@@ -442,20 +454,31 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="py-2 space-y-3">
+            <CardContent className="py-2">
               {/* 词汇卡片布局 */}
               {bookType === "vocabulary" && (
-                <div className="space-y-3">
-                  <div className="text-center">
-                    <h3 className="text-2xl font-bold text-primary mb-1" data-field="primary">
+                <div className="space-y-2">
+                  {/* 第一列：单词 */}
+                  <div data-field="primary">
+                    <h3 className="text-2xl font-bold text-primary">
                       {fieldsWithHighlights.has("primary")
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : card.contentPrimary}
                     </h3>
-                    <p className="text-lg text-muted-foreground">{card.contentSecondary}</p>
                   </div>
+                  {/* 第二列：释义 */}
+                  {card.contentSecondary && (
+                    <div data-field="secondary" className="text-muted-foreground">
+                      <p className="text-lg">
+                        {fieldsWithHighlights.has("secondary")
+                          ? renderFillInText(card.contentSecondary, card.id, "secondary")
+                          : card.contentSecondary}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第三列：用法解释 */}
                   {card.usageNote && (
-                    <div className="p-2 bg-muted/50 rounded-lg" data-field="usageNote">
+                    <div data-field="usageNote" className="text-muted-foreground">
                       <p className="text-sm">
                         {fieldsWithHighlights.has("usageNote")
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
@@ -463,16 +486,24 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                       </p>
                     </div>
                   )}
+                  {/* 第四列：例句英文 */}
                   {card.exampleEn && (
-                    <div className="border-l-4 border-primary pl-3" data-field="exampleEn">
-                      <p className="text-sm italic">
+                    <div data-field="exampleEn" className="text-muted-foreground">
+                      <p className="text-sm">
                         {fieldsWithHighlights.has("exampleEn")
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : card.exampleEn}
                       </p>
-                      {card.exampleZh && (
-                        <p className="text-xs text-muted-foreground mt-1">{card.exampleZh}</p>
-                      )}
+                    </div>
+                  )}
+                  {/* 第五列：例句中文 */}
+                  {card.exampleZh && (
+                    <div data-field="exampleZh" className="text-muted-foreground">
+                      <p className="text-sm">
+                        {fieldsWithHighlights.has("exampleZh")
+                          ? renderFillInText(card.exampleZh, card.id, "exampleZh")
+                          : card.exampleZh}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -480,38 +511,53 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
               {/* 句型卡片布局 */}
               {bookType === "sentence" && (
-                <div className="space-y-3">
-                  <div className="p-3 bg-primary/5 rounded-xl border" data-field="primary">
-                    <p className="text-xl font-semibold text-primary">
+                <div className="space-y-2">
+                  {/* 第一列：句型模板 */}
+                  <div data-field="primary">
+                    <p className="text-xl font-bold text-primary">
                       {fieldsWithHighlights.has("primary")
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : card.contentPrimary}
                     </p>
-                    {card.contentSecondary && (
-                      <p className="text-sm text-muted-foreground mt-1">{card.contentSecondary}</p>
-                    )}
                   </div>
+                  {/* 第二列：中文翻译 */}
+                  {card.contentSecondary && (
+                    <div data-field="secondary" className="text-muted-foreground">
+                      <p className="text-sm">
+                        {fieldsWithHighlights.has("secondary")
+                          ? renderFillInText(card.contentSecondary, card.id, "secondary")
+                          : card.contentSecondary}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第三列：用法说明 */}
                   {card.usageNote && (
-                    <div className="space-y-1" data-field="usageNote">
-                      <p className="text-xs font-medium">用法说明</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div data-field="usageNote" className="text-muted-foreground">
+                      <p className="text-sm">
                         {fieldsWithHighlights.has("usageNote")
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : card.usageNote}
                       </p>
                     </div>
                   )}
+                  {/* 第四列：例句英文 */}
                   {card.exampleEn && (
-                    <div className="space-y-1" data-field="exampleEn">
-                      <p className="text-xs font-medium">例句</p>
-                      <p className="text-sm italic border-l-2 pl-2 border-primary">
+                    <div data-field="exampleEn" className="text-muted-foreground">
+                      <p className="text-sm">
                         {fieldsWithHighlights.has("exampleEn")
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : card.exampleEn}
                       </p>
-                      {card.exampleZh && (
-                        <p className="text-xs text-muted-foreground">{card.exampleZh}</p>
-                      )}
+                    </div>
+                  )}
+                  {/* 第五列：例句中文 */}
+                  {card.exampleZh && (
+                    <div data-field="exampleZh" className="text-muted-foreground">
+                      <p className="text-sm">
+                        {fieldsWithHighlights.has("exampleZh")
+                          ? renderFillInText(card.exampleZh, card.id, "exampleZh")
+                          : card.exampleZh}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -519,44 +565,59 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
               {/* 语料卡片布局 */}
               {bookType === "corpus" && (
-                <div className="space-y-3">
-                  <div className="text-center py-1" data-field="primary">
-                    <p className="text-base">
+                <div className="space-y-2">
+                  {/* 第一列：问题 */}
+                  <div data-field="primary">
+                    <p className="text-lg font-bold text-primary">
                       {fieldsWithHighlights.has("primary")
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : card.contentPrimary}
                     </p>
-                    {card.contentSecondary && (
-                      <p className="text-sm text-muted-foreground">{card.contentSecondary}</p>
-                    )}
                   </div>
+                  {/* 第二列：正式英文回答 */}
+                  {card.contentSecondary && (
+                    <div data-field="secondary" className="text-muted-foreground">
+                      <p className="text-sm">
+                        {fieldsWithHighlights.has("secondary")
+                          ? renderFillInText(card.contentSecondary, card.id, "secondary")
+                          : card.contentSecondary}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第三列：正式中文回答 */}
                   {card.usageNote && (
-                    <div className="p-2 bg-muted/50 rounded-lg" data-field="usageNote">
-                      <p className="text-xs font-medium">要点</p>
-                      <p className="text-sm text-muted-foreground">
+                    <div data-field="usageNote" className="text-muted-foreground">
+                      <p className="text-sm">
                         {fieldsWithHighlights.has("usageNote")
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : card.usageNote}
                       </p>
                     </div>
                   )}
+                  {/* 第四列：口语英文回答 */}
                   {card.exampleEn && (
-                    <div className="space-y-1" data-field="exampleEn">
-                      <p className="text-xs font-medium">示例</p>
+                    <div data-field="exampleEn" className="text-muted-foreground">
                       <p className="text-sm">
                         {fieldsWithHighlights.has("exampleEn")
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : card.exampleEn}
                       </p>
-                      {card.exampleZh && (
-                        <p className="text-xs text-muted-foreground">{card.exampleZh}</p>
-                      )}
                     </div>
                   )}
+                  {/* 第五列：口语中文回答 */}
+                  {card.exampleZh && (
+                    <div data-field="exampleZh" className="text-muted-foreground">
+                      <p className="text-sm">
+                        {fieldsWithHighlights.has("exampleZh")
+                          ? renderFillInText(card.exampleZh, card.id, "exampleZh")
+                          : card.exampleZh}
+                      </p>
+                    </div>
+                  )}
+                  {/* 第六列：分析 */}
                   {card.analysis && (
-                    <div className="p-2 bg-primary/5 rounded-lg" data-field="analysis">
-                      <p className="text-xs font-medium">分析</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div data-field="analysis" className="text-muted-foreground">
+                      <p className="text-sm">
                         {fieldsWithHighlights.has("analysis")
                           ? renderFillInText(card.analysis, card.id, "analysis")
                           : card.analysis}
