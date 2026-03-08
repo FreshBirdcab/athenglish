@@ -377,6 +377,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       delete newState[cardId]
       return newState
     })
+    // 清除该卡片的历史记录，允许下次答题时重新计数
+    setFillAnswerHistory(prev => {
+      const newState = { ...prev }
+      delete newState[cardId]
+      return newState
+    })
   }
 
   // 切换显示答案
