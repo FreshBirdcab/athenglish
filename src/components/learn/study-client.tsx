@@ -89,14 +89,141 @@ export function StudyClient({
 
   // 卡片级挖空模式状态
   const [showAnswer, setShowAnswer] = useState(false)
+  // 当前聚焦的挖空索引
+  const [focusedFillIndex, setFocusedFillIndex] = useState<number | null>(null)
 
   // 切换卡片时重置挖空状态
   useEffect(() => {
     setShowAnswer(false)
+    setFocusedFillIndex(null)
   }, [currentIndex])
 
   const currentCard = cards[currentIndex]
   const total = cards.length
+
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 如果在输入框中，不处理以下快捷键
+      const target = e.target as HTMLElement
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+
+      // 方向键切换卡片（全局）
+      if (e.key === "ArrowLeft") {
+        e.preventDefault()
+        if (currentIndex > 0) {
+          setCurrentIndex(currentIndex - 1)
+          setProgress(((currentIndex - 1) / total) * 100)
+        }
+        return
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault()
+        if (currentIndex < total - 1) {
+          setCurrentIndex(currentIndex + 1)
+          setProgress(((currentIndex + 1) / total) * 100)
+        }
+        return
+      }
+
+      // q键：进入/退出挖空模式
+      if (e.key === "q" || e.key === "Q") {
+        e.preventDefault()
+        if (activeFillCardId) {
+          setActiveFillCardId(null)
+        } else if (currentCard) {
+          setActiveFillCardId(currentCard.id)
+          setShowAnswer(false)
+          setFocusedFillIndex(null)
+        }
+        return
+      }
+
+      // 以下快捷键只在挖空模式下生效
+      if (!activeFillCardId) return
+
+      // 回车键：提交当前答案并跳转到下一个挖空（在输入框中时允许）
+      if (e.key === "Enter" && isInput) {
+        e.preventDefault()
+        // 获取当前卡片的所有挖空数量
+        const cardAnnotations = annotations[currentCard.id] || []
+        const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+        const fillCount = highlightAnnotations.length
+
+        // 提交当前答案
+        const cardState = fillModeCards[currentCard.id] || {}
+        const currentFieldState = cardState[focusedFillIndex || 0]
+        if (currentFieldState && currentFieldState.input.trim()) {
+          // 获取原文验证答案
+          let fieldText = ""
+          const validAnnotations = highlightAnnotations.filter((a: Annotation) => a.field)
+          if (validAnnotations.length > 0) {
+            const sorted = [...validAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+            const currentAnn = sorted[focusedFillIndex || 0]
+            if (currentAnn) {
+              if (currentAnn.field === "primary") fieldText = currentCard.contentPrimary
+              else if (currentAnn.field === "usageNote") fieldText = currentCard.usageNote || ""
+              else if (currentAnn.field === "exampleEn") fieldText = currentCard.exampleEn || ""
+              else if (currentAnn.field === "analysis") fieldText = currentCard.analysis || ""
+
+              const answer = fieldText.slice(currentAnn.startOffset, currentAnn.endOffset).trim().toLowerCase()
+              const isCorrect = currentFieldState.input.trim().toLowerCase() === answer
+
+              // 更新当前答案为已检查状态
+              setFillModeCards(prev => ({
+                ...prev,
+                [currentCard.id]: {
+                  ...prev[currentCard.id],
+                  [focusedFillIndex || 0]: { ...currentFieldState, checked: true, isCorrect }
+                }
+              }))
+            }
+          }
+        }
+
+        // 跳转到下一个挖空
+        const nextIndex = ((focusedFillIndex || 0) + 1) % fillCount
+        setFocusedFillIndex(nextIndex)
+
+        // 延迟聚焦到下一个输入框
+        setTimeout(() => {
+          const inputs = document.querySelectorAll(`[data-card-id="${currentCard.id}"] input`)
+          if (inputs[nextIndex]) {
+            (inputs[nextIndex] as HTMLInputElement).focus()
+          }
+        }, 50)
+        return
+      }
+
+      // 在输入框中时，禁用 e/x 快捷键
+      if (isInput) return
+
+      // e键：切换显示答案
+      if (e.key === "e" || e.key === "E") {
+        e.preventDefault()
+        setShowAnswer(prev => !prev)
+        return
+      }
+
+      // x键：重置挖空内容
+      if (e.key === "x" || e.key === "X") {
+        e.preventDefault()
+        if (currentCard) {
+          setFillModeCards(prev => {
+            const newState = { ...prev }
+            delete newState[currentCard.id]
+            return newState
+          })
+          setShowAnswer(false)
+          setFocusedFillIndex(null)
+        }
+        return
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [currentIndex, total, activeFillCardId, currentCard, focusedFillIndex, fillModeCards, annotations, setFillModeCards])
 
   // 加载收藏状态
   useEffect(() => {
@@ -176,10 +303,14 @@ export function StudyClient({
         fillContent = (
           <input
             type="text"
+            data-card-id={cardId}
+            data-fill-index={index}
+            autoFocus={focusedFillIndex === index}
             className="inline-block min-w-[80px] px-2 py-0.5 border-b-2 border-amber-400 bg-transparent focus:outline-none focus:border-amber-600"
             placeholder="?"
             value={userInput}
             onChange={(e) => {
+              setFocusedFillIndex(index)
               setFillModeCards(prev => ({
                 ...prev,
                 [cardId]: {
@@ -188,19 +319,7 @@ export function StudyClient({
                 }
               }))
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const correctAnswer = answer.trim().toLowerCase()
-                const isCorrect = userInput.trim().toLowerCase() === correctAnswer
-                setFillModeCards(prev => ({
-                  ...prev,
-                  [cardId]: {
-                    ...(prev[cardId] || {}),
-                    [index]: { input: userInput, checked: true, isCorrect }
-                  }
-                }))
-              }
-            }}
+            onFocus={() => setFocusedFillIndex(index)}
           />
         )
       }

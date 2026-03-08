@@ -60,6 +60,118 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
     }
   }, [session])
 
+  // 键盘快捷键
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA'
+
+      // q键：进入/退出挖空模式
+      if (e.key === "q" || e.key === "Q") {
+        if (isInput) return // 在输入框中禁用
+        e.preventDefault()
+        if (activeFillCardId) {
+          setActiveFillCardId(null)
+        } else if (cards.length > 0) {
+          // 默认进入第一张卡片的挖空模式
+          setActiveFillCardId(cards[0].id)
+          setShowAnswers(prev => ({ ...prev, [cards[0].id]: false }))
+        }
+        return
+      }
+
+      // e键：切换显示答案（当前激活的卡片）
+      if ((e.key === "e" || e.key === "E") && activeFillCardId) {
+        if (isInput) return // 在输入框中禁用
+        e.preventDefault()
+        setShowAnswers(prev => ({
+          ...prev,
+          [activeFillCardId]: !prev[activeFillCardId]
+        }))
+        return
+      }
+
+      // x键：重置挖空内容
+      if ((e.key === "x" || e.key === "X") && activeFillCardId) {
+        if (isInput) return // 在输入框中禁用
+        e.preventDefault()
+        setFillModeCards(prev => {
+          const newState = { ...prev }
+          delete newState[activeFillCardId]
+          return newState
+        })
+        setShowAnswers(prev => {
+          const newState = { ...prev }
+          delete newState[activeFillCardId]
+          return newState
+        })
+        return
+      }
+
+      // 回车键：提交当前答案并跳转到下一个挖空
+      if (e.key === "Enter" && isInput && activeFillCardId) {
+        e.preventDefault()
+        const cardId = activeFillCardId
+        const card = cards.find(c => c.id === cardId)
+        if (!card) return
+
+        // 获取当前卡片的所有挖空数量
+        const cardAnnotations = annotations[cardId] || []
+        const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+        const fillCount = highlightAnnotations.length
+
+        // 获取当前聚焦的输入框索引
+        const currentInput = document.activeElement as HTMLInputElement
+        const currentIndexAttr = currentInput?.dataset?.fillIndex
+        const currentIndex = currentIndexAttr ? parseInt(currentIndexAttr) : 0
+
+        // 提交当前答案
+        const cardState = fillModeCards[cardId] || {}
+        const currentFieldState = cardState[currentIndex]
+        if (currentFieldState && currentFieldState.input.trim()) {
+          let fieldText = ""
+          const validAnnotations = highlightAnnotations.filter((a: Annotation) => a.field)
+          if (validAnnotations.length > 0) {
+            const sorted = [...validAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+            const currentAnn = sorted[currentIndex]
+            if (currentAnn) {
+              if (currentAnn.field === "primary") fieldText = card.contentPrimary
+              else if (currentAnn.field === "usageNote") fieldText = card.usageNote || ""
+              else if (currentAnn.field === "exampleEn") fieldText = card.exampleEn || ""
+              else if (currentAnn.field === "analysis") fieldText = card.analysis || ""
+
+              const answer = fieldText.slice(currentAnn.startOffset, currentAnn.endOffset).trim().toLowerCase()
+              const isCorrect = currentFieldState.input.trim().toLowerCase() === answer
+
+              setFillModeCards(prev => ({
+                ...prev,
+                [cardId]: {
+                  ...prev[cardId],
+                  [currentIndex]: { ...currentFieldState, checked: true, isCorrect }
+                }
+              }))
+            }
+          }
+        }
+
+        // 跳转到下一个挖空
+        const nextIndex = (currentIndex + 1) % fillCount
+
+        // 延迟聚焦到下一个输入框
+        setTimeout(() => {
+          const inputs = document.querySelectorAll(`[data-card-id="${cardId}"] input`)
+          if (inputs[nextIndex]) {
+            (inputs[nextIndex] as HTMLInputElement).focus()
+          }
+        }, 50)
+        return
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [activeFillCardId, cards, annotations, fillModeCards, setFillModeCards])
+
   const speak = (text: string) => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(text)
@@ -148,6 +260,8 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
         fillContent = (
           <input
             type="text"
+            data-card-id={cardId}
+            data-fill-index={index}
             className="inline-block min-w-[80px] px-2 py-0.5 border-b-2 border-amber-400 bg-transparent focus:outline-none focus:border-amber-600"
             placeholder="?"
             value={userInput}
@@ -160,18 +274,9 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                 }
               }))
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                const correctAnswer = answer.trim().toLowerCase()
-                const isCorrect = userInput.trim().toLowerCase() === correctAnswer
-                setFillModeCards(prev => ({
-                  ...prev,
-                  [cardId]: {
-                    ...(prev[cardId] || {}),
-                    [index]: { input: userInput, checked: true, isCorrect }
-                  }
-                }))
-              }
+            onFocus={() => {
+              // 更新当前聚焦的挖空索引
+              setShowAnswers(prev => ({ ...prev, [cardId]: false }))
             }}
           />
         )
