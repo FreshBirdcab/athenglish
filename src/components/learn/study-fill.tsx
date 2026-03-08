@@ -270,10 +270,20 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
   // 重置卡片状态
   const resetCard = (cardId: string) => {
+    // 只重置 checked 状态，不删除数据
     setFillModeCards(prev => {
-      const newState = { ...prev }
-      delete newState[cardId]
-      return newState
+      const cardData = prev[cardId]
+      if (!cardData) return prev
+      const resetData: Record<number, { input: string; checked: boolean; isCorrect: boolean | null }> = {}
+      Object.keys(cardData).forEach(key => {
+        const idx = parseInt(key)
+        resetData[idx] = {
+          input: cardData[idx].input,
+          checked: false,
+          isCorrect: null
+        }
+      })
+      return { ...prev, [cardId]: resetData }
     })
     setShowAnswers(prev => {
       const newState = { ...prev }

@@ -22,13 +22,14 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // 关系
-  progress      UserProgress[]
-  reviews       UserReview[]
-  favorites     Favorite[]
-  comments      Comment[]
-  annotations   Annotation[]
-  achievements  UserAchievement[]
-  streaks       Streak[]
+  progress          UserProgress[]
+  reviews           UserReview[]
+  favorites         Favorite[]
+  comments          Comment[]
+  annotations       Annotation[]
+  achievements      UserAchievement[]
+  streaks           Streak[]
+  fillAnswerHistory FillAnswerHistory[]
 }
 
 // 书本表
@@ -233,4 +234,20 @@ model Streak {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId])
+}
+
+// 填空答题历史记录
+model FillAnswerHistory {
+  id          String   @id @default(uuid())
+  userId      String
+  cardId      String
+  correctCount Int    @default(0)
+  incorrectCount Int  @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关系
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, cardId])
 }

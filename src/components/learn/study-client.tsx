@@ -418,10 +418,20 @@ export function StudyClient({
   // 重置卡片状态
   const resetFillCard = () => {
     if (currentCard) {
+      // 只重置 checked 状态，不删除数据
       setFillModeCards(prev => {
-        const newState = { ...prev }
-        delete newState[currentCard.id]
-        return newState
+        const cardData = prev[currentCard.id]
+        if (!cardData) return prev
+        const resetData: Record<number, { input: string; checked: boolean; isCorrect: boolean | null }> = {}
+        Object.keys(cardData).forEach(key => {
+          const idx = parseInt(key)
+          resetData[idx] = {
+            input: cardData[idx].input,
+            checked: false,
+            isCorrect: null
+          }
+        })
+        return { ...prev, [currentCard.id]: resetData }
       })
       setShowAnswer(false)
       // 清除该卡片的历史记录，允许下次答题时重新计数
