@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Volume2, Heart, PenLine, Eye, EyeOff, X } from "lucide-react"
+import { Volume2, Heart, PenLine, Eye, EyeOff, X, Check } from "lucide-react"
 
 interface Card {
   id: string
@@ -502,6 +502,31 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
         return (
           <Card key={card.id} className="break-inside-avoid">
+            {/* 挖空答题统计 */}
+            {isFillMode && cardState && (
+              <div className="flex justify-center gap-3 pt-3 px-4">
+                {(() => {
+                  const correctCount = Object.values(cardState).filter(s => s.checked && s.isCorrect === true).length
+                  const incorrectCount = Object.values(cardState).filter(s => s.checked && s.isCorrect === false).length
+                  const totalAnswered = correctCount + incorrectCount
+
+                  if (totalAnswered === 0) return null
+
+                  return (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                        <Check className="h-3 w-3" />
+                        {correctCount}
+                      </span>
+                      <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                        <X className="h-3 w-3" />
+                        {incorrectCount}
+                      </span>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
             <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
               {/* 序号徽章 */}
               <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{index + 1}</Badge>
