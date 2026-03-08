@@ -32,12 +32,22 @@ interface SubChapterProgress {
   completed: number
 }
 
-// 环形进度组件
+// 环形进度组件 - 带入场动画
 function CircularProgress({ progress, size = 48, strokeWidth = 4 }: { progress: number; size?: number; strokeWidth?: number }) {
+  const [animatedProgress, setAnimatedProgress] = useState(0)
   const radius = (size - strokeWidth) / 2
   const circumference = radius * 2 * Math.PI
-  const offset = circumference - progress * circumference
-  const isComplete = progress >= 1
+  const offset = circumference - animatedProgress * circumference
+  const isComplete = animatedProgress >= 1
+
+  // 组件挂载时触发动画
+  useEffect(() => {
+    // 延迟一点启动动画，让DOM先渲染
+    const timer = setTimeout(() => {
+      setAnimatedProgress(progress)
+    }, 50)
+    return () => clearTimeout(timer)
+  }, [progress])
 
   return (
     <div className="relative flex-shrink-0" style={{ width: size, height: size }}>
@@ -52,7 +62,7 @@ function CircularProgress({ progress, size = 48, strokeWidth = 4 }: { progress: 
           strokeWidth={strokeWidth}
           className="text-muted/20"
         />
-        {/* 进度圆环 */}
+        {/* 进度圆环 - 使用动画进度值 */}
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -63,7 +73,7 @@ function CircularProgress({ progress, size = 48, strokeWidth = 4 }: { progress: 
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className={`transition-all duration-500 ${isComplete ? 'text-green-500' : 'text-blue-500'}`}
+          className={`transition-all duration-700 ease-out ${isComplete ? 'text-green-500' : 'text-blue-500'}`}
         />
       </svg>
       {isComplete && (
@@ -125,7 +135,7 @@ export function BookClient({ book }: { book: BookData }) {
           <div key={chapter.id} className="rounded-xl border bg-card overflow-hidden shadow-sm">
             <button
               onClick={() => toggleChapter(chapter.id)}
-              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/50 transition-colors"
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-muted/30 transition-colors"
             >
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <span className={`chapter-toggle ${!openChapters.has(chapter.id) ? 'collapsed' : ''}`}>
@@ -147,7 +157,7 @@ export function BookClient({ book }: { book: BookData }) {
 
                   return (
                     <Link key={subChapter.id} href={`/learn/${subChapter.id}`}>
-                      <Card className="card-hover cursor-pointer bg-muted/30 hover:bg-muted/60">
+                      <Card className="card-hover cursor-pointer bg-background/80">
                         <CardHeader className="p-4 pb-2">
                           <div className="flex items-start justify-between">
                             <CardTitle className="text-base flex-1">{subChapter.name}</CardTitle>
