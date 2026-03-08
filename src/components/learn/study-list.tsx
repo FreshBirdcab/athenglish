@@ -502,25 +502,31 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
         return (
           <Card key={card.id} className="break-inside-avoid">
-            {/* 挖空答题统计 */}
+            {/* 挖空答题统计 - 整张卡片整体对错 */}
             {isFillMode && cardState && (
               <div className="flex justify-center gap-3 pt-3 px-4">
                 {(() => {
-                  const correctCount = Object.values(cardState).filter(s => s.checked && s.isCorrect === true).length
-                  const incorrectCount = Object.values(cardState).filter(s => s.checked && s.isCorrect === false).length
-                  const totalAnswered = correctCount + incorrectCount
+                  const answeredCount = Object.values(cardState).filter(s => s.checked).length
 
-                  if (totalAnswered === 0) return null
+                  if (answeredCount === 0) return null
+
+                  const totalFills = Object.keys(cardState).length
+                  const allAnswered = answeredCount === totalFills
+
+                  if (!allAnswered) return null
+
+                  const allCorrect = Object.values(cardState).every(s => s.isCorrect === true)
+                  const hasIncorrect = Object.values(cardState).some(s => s.isCorrect === false)
 
                   return (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                         <Check className="h-3 w-3" />
-                        {correctCount}
+                        {allCorrect ? "1" : "0"}
                       </span>
                       <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                         <X className="h-3 w-3" />
-                        {incorrectCount}
+                        {hasIncorrect ? "1" : "0"}
                       </span>
                     </div>
                   )
