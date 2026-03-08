@@ -333,32 +333,35 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
         return (
           <Card key={card.id} className="break-inside-avoid">
-            <CardHeader className="flex flex-row items-center justify-between py-3">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline">#{index + 1}</Badge>
+            <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+              {/* 序号徽章 */}
+              <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{index + 1}</Badge>
+
+              {/* 右侧：操作按钮组 */}
+              <div className="flex items-center gap-0.5">
+                {/* 答题状态 */}
                 {hasAnyChecked && (
-                  allCorrect ? (
-                    <Badge className="bg-green-100 text-green-700 border-green-300">
-                      <Check className="h-3 w-3 mr-1" /> 正确
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-red-100 text-red-700 border-red-300">
-                      <X className="h-3 w-3 mr-1" /> 有错误
-                    </Badge>
-                  )
+                  <Badge className={`text-xs h-6 mr-1 ${allCorrect ? "bg-green-100 text-green-700 border-green-300" : "bg-red-100 text-red-700 border-red-300"}`}>
+                    {allCorrect ? "正确" : "错误"}
+                  </Badge>
                 )}
-              </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" onClick={() => speak(card.contentPrimary)}>
-                  <Volume2 className="h-4 w-4" />
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => toggleFavorite(card.id)}
-                  className={isFavorited ? "text-red-500" : ""}
+                  className={`h-8 w-8 ${isFavorited ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
+                  title={isFavorited ? "取消收藏" : "收藏"}
                 >
                   <Heart className={`h-4 w-4 ${isFavorited ? "fill-current" : ""}`} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => speak(card.contentPrimary)}
+                  className="h-8 w-8 text-muted-foreground hover:text-primary"
+                  title="朗读"
+                >
+                  <Volume2 className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>

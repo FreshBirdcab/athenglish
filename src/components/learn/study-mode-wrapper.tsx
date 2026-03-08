@@ -61,6 +61,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
 
   // 挖空模式相关状态 - 支持每个卡片多个挖空区域
   const [fillModeCards, setFillModeCards] = useState<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>({})
+  // 当前正在使用卡片级挖空模式的卡片ID
+  const [activeFillCardId, setActiveFillCardId] = useState<string | null>(null)
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -395,6 +397,10 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           }}
           onDeleteAnnotation={handleDeleteAnnotation}
           onHighlightClick={handleHighlightClick}
+          activeFillCardId={activeFillCardId}
+          setActiveFillCardId={setActiveFillCardId}
+          fillModeCards={fillModeCards}
+          setFillModeCards={setFillModeCards}
         />
       ) : (
         <StudyClient
@@ -418,6 +424,10 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           onAddNote={handleAddNote}
           onDeleteAnnotation={handleDeleteAnnotation}
           onHighlightClick={handleHighlightClick}
+          activeFillCardId={activeFillCardId}
+          setActiveFillCardId={setActiveFillCardId}
+          fillModeCards={fillModeCards}
+          setFillModeCards={setFillModeCards}
         />
       )}
     </div>

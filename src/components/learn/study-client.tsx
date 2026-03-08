@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { ChevronLeft, ChevronRight, Volume2, Heart } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { ChevronLeft, ChevronRight, Volume2, Heart, PenLine, Check, X, Eye, EyeOff } from "lucide-react"
 
 interface Card {
   id: string
@@ -48,6 +49,11 @@ interface StudyClientProps {
   onAddNote: () => void
   onDeleteAnnotation: (cardId: string, annotationId: string) => void
   onHighlightClick: (cardId: string, annotation: Annotation, event: React.MouseEvent) => void
+  // 挖空模式相关
+  activeFillCardId: string | null
+  setActiveFillCardId: (id: string | null) => void
+  fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
+  setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
 }
 
 export function StudyClient({
@@ -68,7 +74,11 @@ export function StudyClient({
   onAddHighlight,
   onAddNote,
   onDeleteAnnotation,
-  onHighlightClick
+  onHighlightClick,
+  activeFillCardId,
+  setActiveFillCardId,
+  fillModeCards,
+  setFillModeCards
 }: StudyClientProps) {
   const { data: session } = useSession()
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -76,6 +86,14 @@ export function StudyClient({
   const [favorited, setFavorited] = useState(false)
   const [favorites, setFavorites] = useState<string[]>([])
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // 卡片级挖空模式状态
+  const [showAnswer, setShowAnswer] = useState(false)
+
+  // 切换卡片时重置挖空状态
+  useEffect(() => {
+    setShowAnswer(false)
+  }, [currentIndex])
 
   const currentCard = cards[currentIndex]
   const total = cards.length
@@ -100,6 +118,128 @@ export function StudyClient({
       setFavorited(favorites.includes(currentCard.id))
     }
   }, [currentCard, favorites])
+
+  // 渲染挖空文本 (卡片级)
+  const renderFillInText = (text: string, cardId: string, field: string) => {
+    const cardAnnotations = annotations[cardId] || []
+    const fieldAnnotations = cardAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
+    if (fieldAnnotations.length === 0) return text
+
+    const sorted = [...fieldAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+
+    // 过滤重叠
+    const validAnnotations: Annotation[] = []
+    for (const ann of sorted) {
+      const isOverlapping = validAnnotations.some(
+        existing => !(ann.endOffset <= existing.startOffset || ann.startOffset >= existing.endOffset)
+      )
+      if (!isOverlapping) {
+        validAnnotations.push(ann)
+      }
+    }
+
+    const parts: React.JSX.Element[] = []
+    let lastEnd = 0
+    const cardState = fillModeCards[cardId] || {}
+
+    validAnnotations.forEach((ann: Annotation, index: number) => {
+      if (ann.startOffset < lastEnd) return
+
+      if (ann.startOffset > lastEnd) {
+        parts.push(<span key={`text-${field}-${index}`}>{text.slice(lastEnd, ann.startOffset)}</span>)
+      }
+
+      const answer = text.slice(ann.startOffset, ann.endOffset)
+      const fieldState = cardState[index] || { input: "", checked: false, isCorrect: null }
+      const userInput = fieldState.input
+      const isChecked = fieldState.checked
+
+      let fillContent: React.ReactNode
+
+      if (showAnswer) {
+        fillContent = (
+          <span className="inline-block min-w-[60px] px-2 py-0.5 bg-green-100 text-green-800 rounded border border-green-300 font-medium animate-scale-in">
+            {answer}
+          </span>
+        )
+      } else if (isChecked) {
+        fillContent = (
+          <span className={`inline-block min-w-[60px] px-2 py-0.5 rounded border font-medium animate-scale-in ${
+            fieldState.isCorrect
+              ? "bg-green-100 text-green-800 border-green-300"
+              : "bg-red-100 text-red-800 border-red-300"
+          }`}>
+            {answer}
+          </span>
+        )
+      } else {
+        fillContent = (
+          <input
+            type="text"
+            className="inline-block min-w-[80px] px-2 py-0.5 border-b-2 border-amber-400 bg-transparent focus:outline-none focus:border-amber-600"
+            placeholder="?"
+            value={userInput}
+            onChange={(e) => {
+              setFillModeCards(prev => ({
+                ...prev,
+                [cardId]: {
+                  ...(prev[cardId] || {}),
+                  [index]: { input: e.target.value, checked: false, isCorrect: null }
+                }
+              }))
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                const correctAnswer = answer.trim().toLowerCase()
+                const isCorrect = userInput.trim().toLowerCase() === correctAnswer
+                setFillModeCards(prev => ({
+                  ...prev,
+                  [cardId]: {
+                    ...(prev[cardId] || {}),
+                    [index]: { input: userInput, checked: true, isCorrect }
+                  }
+                }))
+              }
+            }}
+          />
+        )
+      }
+
+      parts.push(<span key={`fill-${field}-${index}`} className="relative">{fillContent}</span>)
+
+      lastEnd = ann.endOffset
+    })
+
+    if (lastEnd < text.length) {
+      parts.push(<span key="text-end">{text.slice(lastEnd)}</span>)
+    }
+
+    return parts
+  }
+
+  // 获取卡片中有高亮的字段
+  const getHighlightedFields = (cardId: string) => {
+    const cardAnnotations = annotations[cardId] || []
+    const fieldsWithHighlights = new Set<string>()
+    cardAnnotations.forEach((a: Annotation) => {
+      if (a.highlight) {
+        fieldsWithHighlights.add(a.field)
+      }
+    })
+    return fieldsWithHighlights
+  }
+
+  // 重置卡片状态
+  const resetFillCard = () => {
+    if (currentCard) {
+      setFillModeCards(prev => {
+        const newState = { ...prev }
+        delete newState[currentCard.id]
+        return newState
+      })
+      setShowAnswer(false)
+    }
+  }
 
   const goNext = async () => {
     if (currentIndex < total - 1) {
@@ -308,19 +448,76 @@ export function StudyClient({
         {currentCard && (
           <div className="w-full">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <Badge variant="outline">#{currentIndex + 1}</Badge>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" onClick={() => speak(currentCard.contentPrimary)}>
-                    <Volume2 className="h-4 w-4" />
-                  </Button>
+              <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+                {/* 序号徽章 */}
+                <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{currentIndex + 1}</Badge>
+
+                {/* 右侧：操作按钮组 */}
+                <div className="flex items-center gap-0.5">
+                  {/* 挖空模式控制按钮组 */}
+                  {activeFillCardId === currentCard.id ? (
+                    <div className="flex items-center gap-1 bg-amber-50 rounded-lg px-2 py-1 mr-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowAnswer(!showAnswer)}
+                        className="h-6 text-xs px-1"
+                        title={showAnswer ? "隐藏答案" : "查看答案"}
+                      >
+                        {showAnswer ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                      </Button>
+                      <div className="w-px h-4 bg-amber-300" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={resetFillCard}
+                        className="h-6 text-xs px-1"
+                        title="重置"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                      <div className="w-px h-4 bg-amber-300" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setActiveFillCardId(null)}
+                        className="h-6 text-xs px-1 text-amber-600"
+                        title="退出挖空"
+                      >
+                        <PenLine className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => {
+                        setActiveFillCardId(currentCard.id)
+                        setShowAnswer(false)
+                      }}
+                      className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                      title="挖空学习"
+                    >
+                      <PenLine className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={toggleFavorite}
-                    className={favorited ? "text-red-500" : ""}
+                    className={`h-8 w-8 ${favorited ? "text-red-500" : "text-muted-foreground hover:text-red-500"}`}
+                    title={favorited ? "取消收藏" : "收藏"}
                   >
                     <Heart className={`h-4 w-4 ${favorited ? "fill-current" : ""}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => speak(currentCard.contentPrimary)}
+                    className="h-8 w-8 text-muted-foreground hover:text-primary"
+                    title="朗读"
+                  >
+                    <Volume2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
@@ -330,18 +527,28 @@ export function StudyClient({
                   <div className="space-y-4">
                     <div className="text-center py-2" data-field="primary">
                       <CardTitle className="text-3xl font-bold text-primary mb-2">
-                        {renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
+                        {activeFillCardId === currentCard.id
+                          ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
+                          : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
                       </CardTitle>
                       <p className="text-xl text-muted-foreground">{currentCard.contentSecondary}</p>
                     </div>
                     {currentCard.usageNote && (
                       <div className="p-3 bg-muted/50 rounded-lg" data-field="usageNote">
-                        <p className="text-sm">{renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}</p>
+                        <p className="text-sm">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
+                            : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
+                        </p>
                       </div>
                     )}
                     {currentCard.exampleEn && (
                       <div className="border-l-4 border-primary pl-4" data-field="exampleEn">
-                        <p className="text-base italic">{renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}</p>
+                        <p className="text-base italic">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
+                            : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
+                        </p>
                         {currentCard.exampleZh && (
                           <p className="text-sm text-muted-foreground mt-1">{currentCard.exampleZh}</p>
                         )}
@@ -354,7 +561,11 @@ export function StudyClient({
                 {bookType === "sentence" && (
                   <div className="space-y-4">
                     <div className="p-4 bg-primary/5 rounded-xl border" data-field="primary">
-                      <p className="text-2xl font-semibold text-primary">{renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}</p>
+                      <p className="text-2xl font-semibold text-primary">
+                        {activeFillCardId === currentCard.id
+                          ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
+                          : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
+                      </p>
                       {currentCard.contentSecondary && (
                         <p className="text-muted-foreground mt-2">{currentCard.contentSecondary}</p>
                       )}
@@ -362,13 +573,21 @@ export function StudyClient({
                     {currentCard.usageNote && (
                       <div className="space-y-2" data-field="usageNote">
                         <p className="text-sm font-medium">用法说明</p>
-                        <p className="text-sm text-muted-foreground">{renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
+                            : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
+                        </p>
                       </div>
                     )}
                     {currentCard.exampleEn && (
                       <div className="space-y-2" data-field="exampleEn">
                         <p className="text-sm font-medium">例句</p>
-                        <p className="text-base italic border-l-2 pl-3 border-primary">{renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}</p>
+                        <p className="text-base italic border-l-2 pl-3 border-primary">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
+                            : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
+                        </p>
                         {currentCard.exampleZh && (
                           <p className="text-sm text-muted-foreground">{currentCard.exampleZh}</p>
                         )}
@@ -382,7 +601,9 @@ export function StudyClient({
                   <div className="space-y-4">
                     <div className="text-center py-2" data-field="primary">
                       <CardTitle className="text-xl font-normal mb-2">
-                        {renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
+                        {activeFillCardId === currentCard.id
+                          ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
+                          : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
                       </CardTitle>
                       {currentCard.contentSecondary && (
                         <p className="text-muted-foreground">{currentCard.contentSecondary}</p>
@@ -391,13 +612,21 @@ export function StudyClient({
                     {currentCard.usageNote && (
                       <div className="p-3 bg-muted/50 rounded-lg" data-field="usageNote">
                         <p className="text-sm font-medium">要点</p>
-                        <p className="text-sm text-muted-foreground mt-1">{renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
+                            : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
+                        </p>
                       </div>
                     )}
                     {currentCard.exampleEn && (
                       <div className="space-y-2" data-field="exampleEn">
                         <p className="text-sm font-medium">示例</p>
-                        <p className="text-base">{renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}</p>
+                        <p className="text-base">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
+                            : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
+                        </p>
                         {currentCard.exampleZh && (
                           <p className="text-sm text-muted-foreground">{currentCard.exampleZh}</p>
                         )}
@@ -406,7 +635,11 @@ export function StudyClient({
                     {currentCard.analysis && (
                       <div className="p-3 bg-primary/5 rounded-lg" data-field="analysis">
                         <p className="text-sm font-medium">分析</p>
-                        <p className="text-sm text-muted-foreground mt-1">{renderHighlightedText(currentCard.analysis, currentCard.id, "analysis")}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {activeFillCardId === currentCard.id
+                            ? renderFillInText(currentCard.analysis, currentCard.id, "analysis")
+                            : renderHighlightedText(currentCard.analysis, currentCard.id, "analysis")}
+                        </p>
                       </div>
                     )}
                   </div>
