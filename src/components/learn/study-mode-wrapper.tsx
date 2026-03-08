@@ -3,12 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Layout, List } from "lucide-react"
+import { Layout, List, PenLine } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { StudyClient } from "@/components/learn/study-client"
 import { StudyList } from "@/components/learn/study-list"
+import { StudyFill } from "@/components/learn/study-fill"
 
 interface Card {
   id: string
@@ -57,6 +58,9 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   const [showMenu, setShowMenu] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
+
+  // 挖空模式相关状态
+  const [fillModeCards, setFillModeCards] = useState<Record<string, { input: string; checked: boolean; isCorrect: boolean | null }>>({})
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -306,6 +310,14 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           <List className="h-4 w-4 mr-1" />
           全部展示
         </Button>
+        <Button
+          variant={mode === "fill" ? "default" : "outline"}
+          size="sm"
+          onClick={() => toggleMode("fill")}
+        >
+          <PenLine className="h-4 w-4 mr-1" />
+          挖空填空
+        </Button>
       </div>
 
       {/* 高亮/批注菜单 - 两个模式共用 */}
@@ -363,7 +375,15 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
       )}
 
       {/* 根据模式渲染不同组件 */}
-      {mode === "list" ? (
+      {mode === "fill" ? (
+        <StudyFill
+          cards={cards}
+          bookType={bookType}
+          annotations={annotations}
+          fillModeCards={fillModeCards}
+          setFillModeCards={setFillModeCards}
+        />
+      ) : mode === "list" ? (
         <StudyList
           cards={cards}
           bookType={bookType}
