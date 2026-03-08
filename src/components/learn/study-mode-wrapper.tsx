@@ -66,6 +66,43 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   // 答题历史记录：每张卡片的累计答对/答错次数
   const [fillAnswerHistory, setFillAnswerHistory] = useState<Record<string, { correct: number; incorrect: number }>>({})
 
+  // 从数据库加载答题历史
+  useEffect(() => {
+    if (session?.user) {
+      fetch("/api/fill-history")
+        .then(res => res.json())
+        .then(data => {
+          if (data.histories) {
+            setFillAnswerHistory(data.histories)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [session])
+
+  // 保存答题历史到数据库（防抖）
+  useEffect(() => {
+    if (!session?.user) return
+    if (Object.keys(fillAnswerHistory).length === 0) return
+
+    const timeout = setTimeout(() => {
+      // 保存每张卡片的历史到数据库
+      Object.entries(fillAnswerHistory).forEach(([cardId, history]) => {
+        fetch("/api/fill-history", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId,
+            correctCount: history.correct,
+            incorrectCount: history.incorrect
+          })
+        }).catch(console.error)
+      })
+    }, 1000)
+
+    return () => clearTimeout(timeout)
+  }, [fillAnswerHistory, session])
+
   // 点击外部关闭菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
