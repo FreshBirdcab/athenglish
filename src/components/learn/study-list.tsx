@@ -76,6 +76,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
           // 默认进入第一张卡片的挖空模式
           setActiveFillCardId(cards[0].id)
           setShowAnswers(prev => ({ ...prev, [cards[0].id]: false }))
+          // 聚焦到第一个挖空输入框
+          setTimeout(() => {
+            const inputs = document.querySelectorAll(`[data-card-id="${cards[0].id}"]`)
+            const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+            if (input) input.focus()
+          }, 100)
         }
         return
       }
@@ -105,6 +111,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
           delete newState[activeFillCardId]
           return newState
         })
+        // 聚焦到第一个挖空输入框
+        setTimeout(() => {
+          const inputs = document.querySelectorAll(`[data-card-id="${activeFillCardId}"]`)
+          const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+          if (input) input.focus()
+        }, 100)
         return
       }
 
@@ -159,11 +171,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
         // 延迟聚焦到下一个输入框
         setTimeout(() => {
-          const inputs = document.querySelectorAll(`[data-card-id="${cardId}"] input`)
-          if (inputs[nextIndex]) {
-            (inputs[nextIndex] as HTMLInputElement).focus()
+          const inputs = document.querySelectorAll(`[data-card-id="${cardId}"]`)
+          const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === String(nextIndex)) as HTMLInputElement
+          if (input) {
+            input.focus()
           }
-        }, 50)
+        }, 100)
         return
       }
     }
@@ -488,6 +501,11 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                       onClick={() => {
                         setActiveFillCardId(card.id)
                         setShowAnswers(prev => ({ ...prev, [card.id]: false }))
+                        setTimeout(() => {
+                          const inputs = document.querySelectorAll(`[data-card-id="${card.id}"]`)
+                          const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+                          if (input) input.focus()
+                        }, 100)
                       }}
                       className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
                       title="挖空学习"
@@ -502,6 +520,11 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                     onClick={() => {
                       setActiveFillCardId(card.id)
                       setShowAnswers(prev => ({ ...prev, [card.id]: false }))
+                      setTimeout(() => {
+                        const inputs = document.querySelectorAll(`[data-card-id="${card.id}"]`)
+                        const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+                        if (input) input.focus()
+                      }, 100)
                     }}
                     className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
                     title="挖空学习"

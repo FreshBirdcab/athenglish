@@ -126,15 +126,21 @@ export function StudyClient({
         return
       }
 
-      // q键：进入/退出挖空模式
-      if (e.key === "q" || e.key === "Q") {
+      // q键：进入/退出挖空模式（输入框中禁用）
+      if ((e.key === "q" || e.key === "Q") && !isInput) {
         e.preventDefault()
         if (activeFillCardId) {
           setActiveFillCardId(null)
         } else if (currentCard) {
           setActiveFillCardId(currentCard.id)
           setShowAnswer(false)
-          setFocusedFillIndex(null)
+          setFocusedFillIndex(0)
+          // 聚焦到第一个挖空输入框
+          setTimeout(() => {
+            const inputs = document.querySelectorAll(`[data-card-id="${currentCard.id}"]`)
+            const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+            if (input) input.focus()
+          }, 100)
         }
         return
       }
@@ -145,21 +151,26 @@ export function StudyClient({
       // 回车键：提交当前答案并跳转到下一个挖空（在输入框中时允许）
       if (e.key === "Enter" && isInput) {
         e.preventDefault()
-        // 获取当前卡片的所有挖空数量
+
+        // 获取当前卡片的所有挖空
         const cardAnnotations = annotations[currentCard.id] || []
         const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
         const fillCount = highlightAnnotations.length
 
+        if (fillCount === 0) return
+
         // 提交当前答案
         const cardState = fillModeCards[currentCard.id] || {}
-        const currentFieldState = cardState[focusedFillIndex || 0]
+        const currentIdx = focusedFillIndex || 0
+        const currentFieldState = cardState[currentIdx]
+
         if (currentFieldState && currentFieldState.input.trim()) {
           // 获取原文验证答案
           let fieldText = ""
           const validAnnotations = highlightAnnotations.filter((a: Annotation) => a.field)
           if (validAnnotations.length > 0) {
             const sorted = [...validAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
-            const currentAnn = sorted[focusedFillIndex || 0]
+            const currentAnn = sorted[currentIdx]
             if (currentAnn) {
               if (currentAnn.field === "primary") fieldText = currentCard.contentPrimary
               else if (currentAnn.field === "usageNote") fieldText = currentCard.usageNote || ""
@@ -174,24 +185,25 @@ export function StudyClient({
                 ...prev,
                 [currentCard.id]: {
                   ...prev[currentCard.id],
-                  [focusedFillIndex || 0]: { ...currentFieldState, checked: true, isCorrect }
+                  [currentIdx]: { ...currentFieldState, checked: true, isCorrect }
                 }
               }))
             }
           }
         }
 
-        // 跳转到下一个挖空
-        const nextIndex = ((focusedFillIndex || 0) + 1) % fillCount
+        // 计算下一个挖空索引
+        const nextIndex = (currentIdx + 1) % fillCount
         setFocusedFillIndex(nextIndex)
 
         // 延迟聚焦到下一个输入框
         setTimeout(() => {
-          const inputs = document.querySelectorAll(`[data-card-id="${currentCard.id}"] input`)
-          if (inputs[nextIndex]) {
-            (inputs[nextIndex] as HTMLInputElement).focus()
+          const inputs = document.querySelectorAll(`[data-card-id="${currentCard.id}"]`)
+          const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === String(nextIndex)) as HTMLInputElement
+          if (input) {
+            input.focus()
           }
-        }, 50)
+        }, 100)
         return
       }
 
@@ -215,7 +227,13 @@ export function StudyClient({
             return newState
           })
           setShowAnswer(false)
-          setFocusedFillIndex(null)
+          setFocusedFillIndex(0)
+          // 聚焦到第一个挖空输入框
+          setTimeout(() => {
+            const inputs = document.querySelectorAll(`[data-card-id="${currentCard.id}"]`)
+            const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+            if (input) input.focus()
+          }, 100)
         }
         return
       }
@@ -613,6 +631,13 @@ export function StudyClient({
                       onClick={() => {
                         setActiveFillCardId(currentCard.id)
                         setShowAnswer(false)
+                        setFocusedFillIndex(0)
+                        // 聚焦到第一个挖空输入框
+                        setTimeout(() => {
+                          const inputs = document.querySelectorAll(`[data-card-id="${currentCard.id}"]`)
+                          const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+                          if (input) input.focus()
+                        }, 100)
                       }}
                       className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
                       title="挖空学习"
@@ -783,7 +808,7 @@ export function StudyClient({
 
       {/* 快捷键提示 */}
       <div className="text-center text-xs text-muted-foreground">
-        快捷键: ← → 切换卡片 | V 发音 | 选中文字可高亮或添加批注
+        快捷键: ← → 切换卡片 | Q 挖空模式 | E 查看答案 | X 重置 | 回车提交
       </div>
     </div>
   )
