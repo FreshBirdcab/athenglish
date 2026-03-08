@@ -104,49 +104,111 @@ export default async function HomePage() {
           <div className="h-px bg-gradient-to-l from-transparent to-primary/30 w-16" />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {books.map((book, index) => {
-            const Icon = getBookIcon(book.type)
-            const stats = getBookStats(book)
-            return (
-              <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
-                <Card className={`book-card glass-card cursor-pointer h-full animate-scale-in stagger-${index + 1}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="p-2 rounded-lg bg-primary/10">
-                        <Icon className="h-6 w-6 text-primary" />
-                      </div>
-                      <Badge variant="secondary" className="badge-greek">
-                        {book.type === 'vocabulary' && '词汇'}
-                        {book.type === 'sentence' && '句型'}
-                        {book.type === 'corpus' && '语料'}
-                      </Badge>
-                    </div>
-                    <CardTitle className="mt-4 text-lg">{book.name}</CardTitle>
-                    <CardDescription className="text-sm leading-relaxed">
-                      {getBookDescription(book.subType || '')}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t">
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
-                        {stats.chapterCount} 章节
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent/60" />
-                        {stats.subChapterCount} 小节
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500/60" />
-                        {stats.cardCount} 卡片
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            )
-          })}
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* 词汇栏 */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <BookOpen className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">词汇</h3>
+            </div>
+            <div>
+              {books.filter(b => b.type === 'vocabulary').map((book) => {
+                const stats = getBookStats(book)
+                return (
+                  <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
+                    <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{book.name}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {getBookDescription(book.subType || '')}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{stats.chapterCount} 章</span>
+                          <span>{stats.subChapterCount} 节</span>
+                          <span>{stats.cardCount} 词</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+            {books.filter(b => b.type === 'vocabulary').length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">暂无词汇书籍</p>
+            )}
+          </div>
+
+          {/* 句型栏 */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <PenTool className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">句型</h3>
+            </div>
+            <div>
+              {books.filter(b => b.type === 'sentence').map((book) => {
+                const stats = getBookStats(book)
+                return (
+                  <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
+                    <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{book.name}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {getBookDescription(book.subType || '')}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{stats.chapterCount} 章</span>
+                          <span>{stats.subChapterCount} 节</span>
+                          <span>{stats.cardCount} 句</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+            {books.filter(b => b.type === 'sentence').length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">暂无句型书籍</p>
+            )}
+          </div>
+
+          {/* 语料栏 */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">语料</h3>
+            </div>
+            <div>
+              {books.filter(b => b.type === 'corpus').map((book) => {
+                const stats = getBookStats(book)
+                return (
+                  <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
+                    <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{book.name}</CardTitle>
+                        <CardDescription className="text-xs">
+                          {getBookDescription(book.subType || '')}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="pt-0">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{stats.chapterCount} 章</span>
+                          <span>{stats.subChapterCount} 节</span>
+                          <span>{stats.cardCount} 语料</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                )
+              })}
+            </div>
+            {books.filter(b => b.type === 'corpus').length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">暂无语料书籍</p>
+            )}
+          </div>
         </div>
       </section>
 

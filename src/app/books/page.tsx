@@ -67,40 +67,59 @@ function getBookDescription(subType: string) {
 export default async function BooksPage() {
   const books = await getBooks()
 
+  // 按类型分组
+  const vocabularyBooks = books.filter(b => b.type === 'vocabulary')
+  const sentenceBooks = books.filter(b => b.type === 'sentence')
+  const corpusBooks = books.filter(b => b.type === 'corpus')
+
+  const BookColumn = ({ title, icon: Icon, books, type }: { title: string; icon: any; books: typeof books; type: string }) => (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Icon className="h-5 w-5 text-primary" />
+        <h2 className="text-xl font-semibold">{title}</h2>
+        <Badge variant="secondary">{books.length}</Badge>
+      </div>
+      {books.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="py-8 text-center text-muted-foreground">
+            暂无{title}
+          </CardContent>
+        </Card>
+      ) : (
+        <div>
+          {books.map((book) => {
+            const stats = getBookStats(book)
+            return (
+              <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
+                <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg">{book.name}</CardTitle>
+                    <CardDescription className="text-xs">{getBookDescription(book.subType || '')}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>章节: {stats.chapterCount}</span>
+                      <span>小节: {stats.subChapterCount}</span>
+                      <span>卡片: {stats.cardCount}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <div className="content-container py-8">
       <h1 className="text-3xl font-bold mb-8">全部书籍</h1>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {books.map((book) => {
-          const Icon = getBookIcon(book.type)
-          const stats = getBookStats(book)
-          return (
-            <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
-              <Card className="book-card glass-card cursor-pointer h-full">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <Icon className="h-8 w-8 text-primary" />
-                    <Badge variant="secondary">
-                      {book.type === 'vocabulary' && '词汇'}
-                      {book.type === 'sentence' && '句型'}
-                      {book.type === 'corpus' && '语料'}
-                    </Badge>
-                  </div>
-                  <CardTitle className="mt-4">{book.name}</CardTitle>
-                  <CardDescription>{getBookDescription(book.subType || '')}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>章节: {stats.chapterCount}</span>
-                    <span>小节: {stats.subChapterCount}</span>
-                    <span>卡片: {stats.cardCount}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )
-        })}
+      <div className="space-y-8">
+        <BookColumn title="词汇" icon={BookOpen} books={vocabularyBooks} type="vocabulary" />
+        <BookColumn title="句型" icon={PenTool} books={sentenceBooks} type="sentence" />
+        <BookColumn title="语料" icon={MessageCircle} books={corpusBooks} type="corpus" />
       </div>
     </div>
   )
