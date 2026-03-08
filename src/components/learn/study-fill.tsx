@@ -27,6 +27,14 @@ interface Annotation {
   field: string
 }
 
+interface FieldStyle {
+  fontSize: string
+  fontWeight: string
+  color: string
+  bold: boolean
+  italic: boolean
+}
+
 interface StudyFillProps {
   cards: Card[]
   bookType: string
@@ -35,6 +43,7 @@ interface StudyFillProps {
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
+  fieldStyles?: Record<string, FieldStyle> | null
 }
 
 interface FillState {
@@ -43,10 +52,17 @@ interface FillState {
   isCorrect: boolean | null
 }
 
-export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory }: StudyFillProps) {
+export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory, fieldStyles }: StudyFillProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
+
+  // 获取字段样式类名
+  const getFieldStyleClass = (field: string): string => {
+    if (!fieldStyles || !fieldStyles[field]) return ''
+    const style = fieldStyles[field]
+    return `${style.fontSize} ${style.fontWeight} ${style.color} ${style.italic ? 'italic' : ''}`.trim()
+  }
 
   // 加载收藏状态
   useEffect(() => {

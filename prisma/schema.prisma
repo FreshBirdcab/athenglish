@@ -46,6 +46,7 @@ model Book {
 
   // 关系
   chapters    Chapter[]
+  styleSettings BookStyleSettings?
 }
 
 // 章节表
@@ -250,4 +251,16 @@ model FillAnswerHistory {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, cardId])
+}
+
+// 书籍字段样式设置
+model BookStyleSettings {
+  id          String   @id @default(uuid())
+  bookId      String   @unique
+  // 字段样式 (JSON 格式存储)
+  // 格式: { primary: {fontSize, fontWeight, color, bold, italic}, secondary: {...}, ... }
+  fieldStyles String   // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
 }

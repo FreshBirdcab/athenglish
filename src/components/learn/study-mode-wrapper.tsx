@@ -30,11 +30,20 @@ interface Annotation {
   field: string
 }
 
+interface FieldStyle {
+  fontSize: string
+  fontWeight: string
+  color: string
+  bold: boolean
+  italic: boolean
+}
+
 interface StudyModeWrapperProps {
   cards: Card[]
   subChapterId: string
   bookType: string
   bookSubType: string | null
+  fieldStyles?: Record<string, FieldStyle> | null
 }
 
 const HIGHLIGHT_COLORS = [
@@ -45,7 +54,7 @@ const HIGHLIGHT_COLORS = [
   { name: "橙色", value: "#fed7aa", label: "orange" },
 ]
 
-export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }: StudyModeWrapperProps) {
+export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, fieldStyles }: StudyModeWrapperProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
@@ -425,6 +434,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           setFillModeCards={setFillModeCards}
           fillAnswerHistory={fillAnswerHistory}
           setFillAnswerHistory={setFillAnswerHistory}
+          fieldStyles={fieldStyles}
         />
       ) : mode === "list" ? (
         <StudyList
@@ -444,6 +454,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           setFillModeCards={setFillModeCards}
           fillAnswerHistory={fillAnswerHistory}
           setFillAnswerHistory={setFillAnswerHistory}
+          fieldStyles={fieldStyles}
         />
       ) : (
         <StudyClient
@@ -453,6 +464,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           bookSubType={bookSubType}
           annotations={annotations}
           setAnnotations={setAnnotations}
+          fieldStyles={fieldStyles}
           selectedText={selectedText}
           setSelectedText={setSelectedText}
           showMenu={showMenu}

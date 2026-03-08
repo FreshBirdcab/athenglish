@@ -27,6 +27,14 @@ interface Annotation {
   field: string
 }
 
+interface FieldStyle {
+  fontSize: string
+  fontWeight: string
+  color: string
+  bold: boolean
+  italic: boolean
+}
+
 interface StudyClientProps {
   cards: Card[]
   subChapterId: string
@@ -55,6 +63,7 @@ interface StudyClientProps {
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
+  fieldStyles?: Record<string, FieldStyle> | null
 }
 
 export function StudyClient({
@@ -81,7 +90,8 @@ export function StudyClient({
   fillModeCards,
   setFillModeCards,
   fillAnswerHistory,
-  setFillAnswerHistory
+  setFillAnswerHistory,
+  fieldStyles
 }: StudyClientProps) {
   const { data: session } = useSession()
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -102,6 +112,13 @@ export function StudyClient({
   }, [currentIndex])
 
   const currentCard = cards[currentIndex]
+
+  // 获取字段样式类名
+  const getFieldStyleClass = (field: string): string => {
+    if (!fieldStyles || !fieldStyles[field]) return ''
+    const style = fieldStyles[field]
+    return `${style.fontSize} ${style.fontWeight} ${style.color} ${style.italic ? 'italic' : ''}`.trim()
+  }
 
   // 用于跟踪本轮已计数的卡片，避免重复计数
   const countedCardsRef = useRef<Set<string>>(new Set())
@@ -911,7 +928,7 @@ export function StudyClient({
                   <div className="space-y-2">
                     {/* 第一列：单词 */}
                     <div data-field="primary">
-                      <CardTitle className="text-3xl font-bold text-primary">
+                      <CardTitle className={getFieldStyleClass("primary") || "text-3xl font-bold text-primary"}>
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
                           : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
@@ -919,8 +936,8 @@ export function StudyClient({
                     </div>
                     {/* 第二列：释义 */}
                     {currentCard.contentSecondary && (
-                      <div data-field="secondary" className="text-muted-foreground">
-                        <p className="text-xl">
+                      <div data-field="secondary">
+                        <p className={getFieldStyleClass("secondary") || "text-xl text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
                             : renderHighlightedText(currentCard.contentSecondary, currentCard.id, "secondary")}
@@ -929,8 +946,8 @@ export function StudyClient({
                     )}
                     {/* 第三列：用法解释 */}
                     {currentCard.usageNote && (
-                      <div data-field="usageNote" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="usageNote">
+                        <p className={getFieldStyleClass("usageNote") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
                             : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
@@ -939,8 +956,8 @@ export function StudyClient({
                     )}
                     {/* 第四列：例句英文 */}
                     {currentCard.exampleEn && (
-                      <div data-field="exampleEn" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="exampleEn">
+                        <p className={getFieldStyleClass("exampleEn") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
                             : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
@@ -949,8 +966,8 @@ export function StudyClient({
                     )}
                     {/* 第五列：例句中文 */}
                     {currentCard.exampleZh && (
-                      <div data-field="exampleZh" className="text-muted-foreground">
-                        <p className="text-sm">
+                      <div data-field="exampleZh">
+                        <p className={getFieldStyleClass("exampleZh") || "text-sm text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
                             : renderHighlightedText(currentCard.exampleZh, currentCard.id, "exampleZh")}
@@ -965,7 +982,7 @@ export function StudyClient({
                   <div className="space-y-2">
                     {/* 第一列：句型模板 */}
                     <div data-field="primary">
-                      <p className="text-2xl font-bold text-primary">
+                      <p className={getFieldStyleClass("primary") || "text-2xl font-bold text-primary"}>
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
                           : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
@@ -973,8 +990,8 @@ export function StudyClient({
                     </div>
                     {/* 第二列：中文句型 */}
                     {currentCard.contentSecondary && (
-                      <div data-field="secondary" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="secondary">
+                        <p className={getFieldStyleClass("secondary") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
                             : renderHighlightedText(currentCard.contentSecondary, currentCard.id, "secondary")}
@@ -983,8 +1000,8 @@ export function StudyClient({
                     )}
                     {/* 第三列：用法说明 */}
                     {currentCard.usageNote && (
-                      <div data-field="usageNote" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="usageNote">
+                        <p className={getFieldStyleClass("usageNote") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
                             : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
@@ -993,8 +1010,8 @@ export function StudyClient({
                     )}
                     {/* 第四列：例句英文 */}
                     {currentCard.exampleEn && (
-                      <div data-field="exampleEn" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="exampleEn">
+                        <p className={getFieldStyleClass("exampleEn") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
                             : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
@@ -1003,8 +1020,8 @@ export function StudyClient({
                     )}
                     {/* 第五列：例句中文 */}
                     {currentCard.exampleZh && (
-                      <div data-field="exampleZh" className="text-muted-foreground">
-                        <p className="text-sm">
+                      <div data-field="exampleZh">
+                        <p className={getFieldStyleClass("exampleZh") || "text-sm text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
                             : renderHighlightedText(currentCard.exampleZh, currentCard.id, "exampleZh")}
@@ -1019,7 +1036,7 @@ export function StudyClient({
                   <div className="space-y-2">
                     {/* 第一列：问题 */}
                     <div data-field="primary">
-                      <CardTitle className="text-xl font-bold text-primary">
+                      <CardTitle className={getFieldStyleClass("primary") || "text-xl font-bold text-primary"}>
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
                           : renderHighlightedText(currentCard.contentPrimary, currentCard.id, "primary")}
@@ -1027,8 +1044,8 @@ export function StudyClient({
                     </div>
                     {/* 第二列：正式英文回答 */}
                     {currentCard.contentSecondary && (
-                      <div data-field="secondary" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="secondary">
+                        <p className={getFieldStyleClass("secondary") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
                             : renderHighlightedText(currentCard.contentSecondary, currentCard.id, "secondary")}
@@ -1037,8 +1054,8 @@ export function StudyClient({
                     )}
                     {/* 第三列：正式中文回答 */}
                     {currentCard.usageNote && (
-                      <div data-field="usageNote" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="usageNote">
+                        <p className={getFieldStyleClass("usageNote") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
                             : renderHighlightedText(currentCard.usageNote, currentCard.id, "usageNote")}
@@ -1047,8 +1064,8 @@ export function StudyClient({
                     )}
                     {/* 第四列：口语英文回答 */}
                     {currentCard.exampleEn && (
-                      <div data-field="exampleEn" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="exampleEn">
+                        <p className={getFieldStyleClass("exampleEn") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
                             : renderHighlightedText(currentCard.exampleEn, currentCard.id, "exampleEn")}
@@ -1057,8 +1074,8 @@ export function StudyClient({
                     )}
                     {/* 第五列：口语中文回答 */}
                     {currentCard.exampleZh && (
-                      <div data-field="exampleZh" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="exampleZh">
+                        <p className={getFieldStyleClass("exampleZh") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
                             : renderHighlightedText(currentCard.exampleZh, currentCard.id, "exampleZh")}
@@ -1067,8 +1084,8 @@ export function StudyClient({
                     )}
                     {/* 第六列：分析 */}
                     {currentCard.analysis && (
-                      <div data-field="analysis" className="text-muted-foreground">
-                        <p className="text-base">
+                      <div data-field="analysis">
+                        <p className={getFieldStyleClass("analysis") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.analysis, currentCard.id, "analysis")
                             : renderHighlightedText(currentCard.analysis, currentCard.id, "analysis")}

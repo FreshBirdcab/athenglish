@@ -26,6 +26,14 @@ interface Annotation {
   field: string
 }
 
+interface FieldStyle {
+  fontSize: string
+  fontWeight: string
+  color: string
+  bold: boolean
+  italic: boolean
+}
+
 interface StudyListProps {
   cards: Card[]
   bookType: string
@@ -40,13 +48,21 @@ interface StudyListProps {
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
+  fieldStyles?: Record<string, FieldStyle> | null
 }
 
-export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick, activeFillCardId, setActiveFillCardId, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory }: StudyListProps) {
+export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick, activeFillCardId, setActiveFillCardId, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory, fieldStyles }: StudyListProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
   const contentRefs = useRef<Record<string, HTMLDivElement>>({})
+
+  // 获取字段样式类名
+  const getFieldStyleClass = (field: string): string => {
+    if (!fieldStyles || !fieldStyles[field]) return ''
+    const style = fieldStyles[field]
+    return `${style.fontSize} ${style.fontWeight} ${style.color} ${style.italic ? 'italic' : ''}`.trim()
+  }
 
   // 加载收藏状态
   useEffect(() => {
@@ -708,7 +724,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                 <div className="space-y-2">
                   {/* 第一列：单词 */}
                   <div data-field="primary" onMouseUp={() => !isFillMode && handleTextSelect(card.id, "primary", card.contentPrimary)}>
-                    <h3 className="text-2xl font-bold text-primary">
+                    <h3 className={getFieldStyleClass("primary") || "text-2xl font-bold text-primary"}>
                       {isFillMode
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : renderHighlightedText(card.contentPrimary, card.id, "primary")}

@@ -21,6 +21,14 @@ async function getSubChapter(subChapterId: string) {
   return subChapter
 }
 
+// 获取书籍字段样式
+async function getBookFieldStyles(bookId: string) {
+  const settings = await prisma.bookStyleSettings.findUnique({
+    where: { bookId }
+  })
+  return settings?.fieldStyles ? JSON.parse(settings.fieldStyles) : null
+}
+
 export default async function LearnPage({ params }: { params: { subChapterId: string } }) {
   const subChapterId = decodeURIComponent(params.subChapterId)
   const subChapter = await getSubChapter(subChapterId)
@@ -30,6 +38,9 @@ export default async function LearnPage({ params }: { params: { subChapterId: st
   }
 
   const cards = subChapter.cards
+
+  // 获取书籍字段样式
+  const fieldStyles = await getBookFieldStyles(subChapter.chapter.book.id)
 
   if (cards.length === 0) {
     return (
@@ -64,6 +75,7 @@ export default async function LearnPage({ params }: { params: { subChapterId: st
         subChapterId={subChapterId}
         bookType={subChapter.chapter.book.type}
         bookSubType={subChapter.chapter.book.subType}
+        fieldStyles={fieldStyles}
       />
     </div>
   )
