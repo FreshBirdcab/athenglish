@@ -47,6 +47,8 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
+  // 用于防止历史记录重复更新
+  const lastUpdatedCardRef = useRef<string | null>(null)
 
   // 加载收藏状态
   useEffect(() => {
@@ -294,25 +296,23 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       const totalFills = annotationsWithHighlight.length
       const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
 
-      if (answeredCount === totalFills) {
+      // 使用ref防止同一张卡片在一次答题过程中被重复计数
+      if (answeredCount === totalFills && lastUpdatedCardRef.current !== cardId) {
         const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
 
-        // 检查之前的状态，只有从"未完成"变为"完成"时才更新历史
-        const prevCardState = prev[cardId] || {}
-        const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
+        // 标记此卡片已更新，防止重复
+        lastUpdatedCardRef.current = cardId
 
-        if (prevAnsweredCount < totalFills) {
-          setFillAnswerHistory(prev => {
-            const history = prev[cardId] || { correct: 0, incorrect: 0 }
-            return {
-              ...prev,
-              [cardId]: {
-                correct: history.correct + (allCorrect ? 1 : 0),
-                incorrect: history.incorrect + (allCorrect ? 0 : 1)
-              }
+        setFillAnswerHistory(prev => {
+          const history = prev[cardId] || { correct: 0, incorrect: 0 }
+          return {
+            ...prev,
+            [cardId]: {
+              correct: history.correct + (allCorrect ? 1 : 0),
+              incorrect: history.incorrect + (allCorrect ? 0 : 1)
             }
-          })
-        }
+          }
+        })
       }
 
       return newState

@@ -94,6 +94,8 @@ export function StudyClient({
   const [showAnswer, setShowAnswer] = useState(false)
   // 当前聚焦的挖空索引
   const [focusedFillIndex, setFocusedFillIndex] = useState<number | null>(null)
+  // 用于防止历史记录重复更新
+  const lastUpdatedCardRef = useRef<string | null>(null)
 
   // 切换卡片时重置挖空状态
   useEffect(() => {
@@ -201,25 +203,23 @@ export function StudyClient({
                 const answeredCount = Object.values(newCardState).filter((s: any) => s.checked).length
 
                 // 如果所有挖空都回答了，更新历史记录
-                // 只有在当前卡片之前没有被标记为已完成时才更新（防止重复）
-                if (answeredCount === totalFills) {
+                // 使用ref防止同一张卡片在一次答题过程中被重复计数
+                if (answeredCount === totalFills && lastUpdatedCardRef.current !== currentCard.id) {
                   const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
-                  const prevCardState = fillModeCards[currentCard.id] || {}
-                  const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
 
-                  // 只有从"未完成"变为"完成"时才更新历史
-                  if (prevAnsweredCount < totalFills) {
-                    setFillAnswerHistory(prev => {
-                      const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
-                      return {
-                        ...prev,
-                        [currentCard.id]: {
-                          correct: history.correct + (allCorrect ? 1 : 0),
-                          incorrect: history.incorrect + (allCorrect ? 0 : 1)
-                        }
+                  // 标记此卡片已更新，防止重复
+                  lastUpdatedCardRef.current = currentCard.id
+
+                  setFillAnswerHistory(prev => {
+                    const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
+                    return {
+                      ...prev,
+                      [currentCard.id]: {
+                        correct: history.correct + (allCorrect ? 1 : 0),
+                        incorrect: history.incorrect + (allCorrect ? 0 : 1)
                       }
-                    })
-                  }
+                    }
+                  })
                 }
 
                 return newState
