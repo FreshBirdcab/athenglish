@@ -297,26 +297,22 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       if (answeredCount === totalFills) {
         const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
 
-        // 先更新历史记录
-        setFillAnswerHistory(prev => {
-          const history = prev[cardId] || { correct: 0, incorrect: 0 }
-          return {
-            ...prev,
-            [cardId]: {
-              correct: history.correct + (allCorrect ? 1 : 0),
-              incorrect: history.incorrect + (allCorrect ? 0 : 1)
-            }
-          }
-        })
+        // 检查之前的状态，只有从"未完成"变为"完成"时才更新历史
+        const prevCardState = prev[cardId] || {}
+        const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
 
-        // 然后清空当前卡片的答题状态，允许下次答题
-        setTimeout(() => {
-          setFillModeCards(prev => {
-            const newFillState = { ...prev }
-            delete newFillState[cardId]
-            return newFillState
+        if (prevAnsweredCount < totalFills) {
+          setFillAnswerHistory(prev => {
+            const history = prev[cardId] || { correct: 0, incorrect: 0 }
+            return {
+              ...prev,
+              [cardId]: {
+                correct: history.correct + (allCorrect ? 1 : 0),
+                incorrect: history.incorrect + (allCorrect ? 0 : 1)
+              }
+            }
           })
-        }, 0)
+        }
       }
 
       return newState

@@ -201,29 +201,25 @@ export function StudyClient({
                 const answeredCount = Object.values(newCardState).filter((s: any) => s.checked).length
 
                 // 如果所有挖空都回答了，更新历史记录
+                // 只有在当前卡片之前没有被标记为已完成时才更新（防止重复）
                 if (answeredCount === totalFills) {
                   const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
+                  const prevCardState = fillModeCards[currentCard.id] || {}
+                  const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
 
-                  // 先更新历史记录
-                  setFillAnswerHistory(prev => {
-                    const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
-                    return {
-                      ...prev,
-                      [currentCard.id]: {
-                        correct: history.correct + (allCorrect ? 1 : 0),
-                        incorrect: history.incorrect + (allCorrect ? 0 : 1)
+                  // 只有从"未完成"变为"完成"时才更新历史
+                  if (prevAnsweredCount < totalFills) {
+                    setFillAnswerHistory(prev => {
+                      const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
+                      return {
+                        ...prev,
+                        [currentCard.id]: {
+                          correct: history.correct + (allCorrect ? 1 : 0),
+                          incorrect: history.incorrect + (allCorrect ? 0 : 1)
+                        }
                       }
-                    }
-                  })
-
-                  // 然后清空当前卡片的答题状态，允许下次答题
-                  setTimeout(() => {
-                    setFillModeCards(prev => {
-                      const newFillState = { ...prev }
-                      delete newFillState[currentCard.id]
-                      return newFillState
                     })
-                  }, 0)
+                  }
                 }
 
                 return newState
