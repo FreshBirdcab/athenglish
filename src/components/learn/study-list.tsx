@@ -92,20 +92,9 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
       // 更简单的方法：检查当前卡片是否刚进入挖空模式（通过查看是否有任何checked为true的状态）
       // 如果已经有checked为true的状态，说明已经记录过了
-      const hasAnyChecked = Object.values(cardState).some((s: any) => s.checked === true)
-
-      // 这里我们用一个标志来追踪是否已经处理过
-      // 由于useEffect会在状态变化后触发，我们需要确保只在必要时更新
-
+      // 每次所有挖空都回答完就累加计数
       setFillAnswerHistory(prev => {
         const history = prev[activeFillCardId] || { correct: 0, incorrect: 0 }
-        // 如果已经有记录且本次结果与上次相同，跳过
-        if (history.correct > 0 || history.incorrect > 0) {
-          // 检查是否需要更新：只有当本次全部正确但历史记录没有正确次数，或本次有错误但历史记录没有错误次数时
-          const needsUpdate = (allCorrect && history.correct === 0) || (!allCorrect && history.incorrect === 0)
-          if (!needsUpdate) return prev
-        }
-
         return {
           ...prev,
           [activeFillCardId]: {

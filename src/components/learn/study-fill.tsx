@@ -82,14 +82,9 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       if (answeredCount === totalFills) {
         const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
 
+        // 每次所有挖空都回答完就累加计数
         setFillAnswerHistory(prev => {
           const history = prev[cardId] || { correct: 0, incorrect: 0 }
-          // 如果已经有记录且本次结果与上次相同，跳过
-          if (history.correct > 0 || history.incorrect > 0) {
-            const needsUpdate = (allCorrect && history.correct === 0) || (!allCorrect && history.incorrect === 0)
-            if (!needsUpdate) return prev
-          }
-
           return {
             ...prev,
             [cardId]: {
