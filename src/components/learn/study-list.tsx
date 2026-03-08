@@ -38,9 +38,11 @@ interface StudyListProps {
   setActiveFillCardId: (id: string | null) => void
   fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+  fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
+  setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
 }
 
-export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick, activeFillCardId, setActiveFillCardId, fillModeCards, setFillModeCards }: StudyListProps) {
+export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick, activeFillCardId, setActiveFillCardId, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory }: StudyListProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
@@ -155,13 +157,37 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
               const answer = fieldText.slice(currentAnn.startOffset, currentAnn.endOffset).trim().toLowerCase()
               const isCorrect = currentFieldState.input.trim().toLowerCase() === answer
 
-              setFillModeCards(prev => ({
-                ...prev,
-                [cardId]: {
-                  ...prev[cardId],
-                  [currentIndex]: { ...currentFieldState, checked: true, isCorrect }
+              setFillModeCards(prev => {
+                const newState = {
+                  ...prev,
+                  [cardId]: {
+                    ...prev[cardId],
+                    [currentIndex]: { ...currentFieldState, checked: true, isCorrect }
+                  }
                 }
-              }))
+
+                // 检查是否所有挖空都已回答
+                const newCardState = newState[cardId]
+                const totalFills = fillCount
+                const answeredCount = Object.values(newCardState).filter((s: any) => s.checked).length
+
+                // 如果所有挖空都回答了，更新历史记录
+                if (answeredCount === totalFills) {
+                  const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
+                  setFillAnswerHistory(prev => {
+                    const history = prev[cardId] || { correct: 0, incorrect: 0 }
+                    return {
+                      ...prev,
+                      [cardId]: {
+                        correct: history.correct + (allCorrect ? 1 : 0),
+                        incorrect: history.incorrect + (allCorrect ? 0 : 1)
+                      }
+                    }
+                  })
+                }
+
+                return newState
+              })
             }
           }
         }
@@ -183,7 +209,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [activeFillCardId, cards, annotations, fillModeCards, setFillModeCards])
+  }, [activeFillCardId, cards, annotations, fillModeCards, setFillModeCards, setFillAnswerHistory])
 
   const speak = (text: string) => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -502,31 +528,24 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
         return (
           <Card key={card.id} className="break-inside-avoid">
-            {/* 挖空答题统计 - 整张卡片整体对错 */}
-            {isFillMode && cardState && (
+            {/* 显示历史答题累计次数 */}
+            {isFillMode && (
               <div className="flex justify-center gap-3 pt-3 px-4">
                 {(() => {
-                  const answeredCount = Object.values(cardState).filter(s => s.checked).length
+                  const history = fillAnswerHistory[card.id] || { correct: 0, incorrect: 0 }
+                  const totalAnswered = history.correct + history.incorrect
 
-                  if (answeredCount === 0) return null
-
-                  const totalFills = Object.keys(cardState).length
-                  const allAnswered = answeredCount === totalFills
-
-                  if (!allAnswered) return null
-
-                  const allCorrect = Object.values(cardState).every(s => s.isCorrect === true)
-                  const hasIncorrect = Object.values(cardState).some(s => s.isCorrect === false)
+                  if (totalAnswered === 0) return null
 
                   return (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                         <Check className="h-3 w-3" />
-                        {allCorrect ? "1" : "0"}
+                        {history.correct}
                       </span>
                       <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                         <X className="h-3 w-3" />
-                        {hasIncorrect ? "1" : "0"}
+                        {history.incorrect}
                       </span>
                     </div>
                   )

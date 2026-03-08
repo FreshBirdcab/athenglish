@@ -33,6 +33,8 @@ interface StudyFillProps {
   annotations: Record<string, Annotation[]>
   fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+  fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
+  setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
 }
 
 interface FillState {
@@ -41,7 +43,7 @@ interface FillState {
   isCorrect: boolean | null
 }
 
-export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards }: StudyFillProps) {
+export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory }: StudyFillProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
@@ -255,39 +257,58 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       }
     })
 
-    // 检查每个高亮
-    fieldAnnotations.forEach(({ annotations: anns }) => {
-      const sorted = [...anns].sort((a, b) => a.startOffset - b.startOffset)
-      let lastEnd = 0
-      sorted.forEach((ann, idx) => {
-        if (ann.startOffset >= lastEnd) {
-          const cardState = fillModeCards[cardId] || {}
-          const fieldState = cardState[idx]
-          if (fieldState && fieldState.input.trim()) {
-            const answer = "" // 不需要答案，只需要触发检查
-            // 获取原文来验证
-            let fieldText = ""
-            if (ann.field === "primary") fieldText = cards.find(c => c.id === cardId)?.contentPrimary || ""
-            else if (ann.field === "usageNote") fieldText = cards.find(c => c.id === cardId)?.usageNote || ""
-            else if (ann.field === "exampleEn") fieldText = cards.find(c => c.id === cardId)?.exampleEn || ""
-            else if (ann.field === "analysis") fieldText = cards.find(c => c.id === cardId)?.analysis || ""
+    // 先检查所有答案，更新状态
+    setFillModeCards(prev => {
+      let newState = { ...prev }
+      const cardState = prev[cardId] || {}
 
-            const correctAnswer = fieldText.slice(ann.startOffset, ann.endOffset).trim().toLowerCase()
-            const userInput = fieldState.input.trim().toLowerCase()
-            const isCorrect = userInput === correctAnswer
+      // 检查每个高亮
+      fieldAnnotations.forEach(({ annotations: anns }) => {
+        const sorted = [...anns].sort((a, b) => a.startOffset - b.startOffset)
+        let lastEnd = 0
+        sorted.forEach((ann, idx) => {
+          if (ann.startOffset >= lastEnd) {
+            const fieldState = cardState[idx]
+            if (fieldState && fieldState.input.trim()) {
+              // 获取原文来验证
+              let fieldText = ""
+              if (ann.field === "primary") fieldText = cards.find(c => c.id === cardId)?.contentPrimary || ""
+              else if (ann.field === "usageNote") fieldText = cards.find(c => c.id === cardId)?.usageNote || ""
+              else if (ann.field === "exampleEn") fieldText = cards.find(c => c.id === cardId)?.exampleEn || ""
+              else if (ann.field === "analysis") fieldText = cards.find(c => c.id === cardId)?.analysis || ""
 
-            setFillModeCards(prev => ({
-              ...prev,
-              [cardId]: {
-                ...(prev[cardId] || {}),
-                [idx]: { ...fieldState, checked: true, isCorrect }
-              }
-            }))
+              const correctAnswer = fieldText.slice(ann.startOffset, ann.endOffset).trim().toLowerCase()
+              const userInput = fieldState.input.trim().toLowerCase()
+              const isCorrect = userInput === correctAnswer
 
-            lastEnd = ann.endOffset
+              cardState[idx] = { ...fieldState, checked: true, isCorrect }
+              lastEnd = ann.endOffset
+            }
           }
-        }
+        })
       })
+
+      newState[cardId] = cardState
+
+      // 检查是否所有挖空都已回答，如果是则更新历史记录
+      const totalFills = annotationsWithHighlight.length
+      const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
+
+      if (answeredCount === totalFills) {
+        const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+        setFillAnswerHistory(prev => {
+          const history = prev[cardId] || { correct: 0, incorrect: 0 }
+          return {
+            ...prev,
+            [cardId]: {
+              correct: history.correct + (allCorrect ? 1 : 0),
+              incorrect: history.incorrect + (allCorrect ? 0 : 1)
+            }
+          }
+        })
+      }
+
+      return newState
     })
   }
 
@@ -333,31 +354,24 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
         return (
           <Card key={card.id} className="break-inside-avoid">
-            {/* 挖空答题统计 - 整张卡片整体对错 */}
-            {cardState && (
+            {/* 显示历史答题累计次数 */}
+            {(
               <div className="flex justify-center gap-3 pt-3 px-4">
                 {(() => {
-                  const answeredCount = Object.values(cardState).filter(s => s.checked).length
+                  const history = fillAnswerHistory[card.id] || { correct: 0, incorrect: 0 }
+                  const totalAnswered = history.correct + history.incorrect
 
-                  if (answeredCount === 0) return null
-
-                  const totalFills = Object.keys(cardState).length
-                  const allAnswered = answeredCount === totalFills
-
-                  if (!allAnswered) return null
-
-                  const allCorrect = Object.values(cardState).every(s => s.isCorrect === true)
-                  const hasIncorrect = Object.values(cardState).some(s => s.isCorrect === false)
+                  if (totalAnswered === 0) return null
 
                   return (
                     <div className="flex items-center gap-2 text-xs">
                       <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                         <Check className="h-3 w-3" />
-                        {allCorrect ? "1" : "0"}
+                        {history.correct}
                       </span>
                       <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
                         <X className="h-3 w-3" />
-                        {hasIncorrect ? "1" : "0"}
+                        {history.incorrect}
                       </span>
                     </div>
                   )

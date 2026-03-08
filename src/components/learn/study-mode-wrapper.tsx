@@ -63,6 +63,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   const [fillModeCards, setFillModeCards] = useState<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>({})
   // 当前正在使用卡片级挖空模式的卡片ID
   const [activeFillCardId, setActiveFillCardId] = useState<string | null>(null)
+  // 答题历史记录：每张卡片的累计答对/答错次数
+  const [fillAnswerHistory, setFillAnswerHistory] = useState<Record<string, { correct: number; incorrect: number }>>({})
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -384,6 +386,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           annotations={annotations}
           fillModeCards={fillModeCards}
           setFillModeCards={setFillModeCards}
+          fillAnswerHistory={fillAnswerHistory}
+          setFillAnswerHistory={setFillAnswerHistory}
         />
       ) : mode === "list" ? (
         <StudyList
@@ -401,6 +405,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           setActiveFillCardId={setActiveFillCardId}
           fillModeCards={fillModeCards}
           setFillModeCards={setFillModeCards}
+          fillAnswerHistory={fillAnswerHistory}
+          setFillAnswerHistory={setFillAnswerHistory}
         />
       ) : (
         <StudyClient
@@ -428,6 +434,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
           setActiveFillCardId={setActiveFillCardId}
           fillModeCards={fillModeCards}
           setFillModeCards={setFillModeCards}
+          fillAnswerHistory={fillAnswerHistory}
+          setFillAnswerHistory={setFillAnswerHistory}
         />
       )}
     </div>
