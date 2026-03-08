@@ -349,17 +349,68 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
     const selectedText = selection.toString().trim()
     if (!selectedText) return
 
-    // 在原始文本中找到选中内容的位置
-    const start = fieldText.indexOf(selectedText)
-    if (start === -1) return
+    // 获取 Range 对象
+    const range = selection.getRangeAt(0)
 
-    const end = start + selectedText.length
+    // 统计字段中该文本出现的次数
+    const allOccurrences: number[] = []
+    let searchPos = 0
+    while (true) {
+      const pos = fieldText.indexOf(selectedText, searchPos)
+      if (pos === -1) break
+      allOccurrences.push(pos)
+      searchPos = pos + 1
+    }
+
+    let start: number
+
+    // 如果只出现一次，直接用 indexOf
+    if (allOccurrences.length === 1) {
+      start = allOccurrences[0]
+    } else {
+      // 多次出现时，使用 DOM 位置计算来确定是第几个
+      const contentElement = contentRefs.current[cardId]
+      if (!contentElement) return
+
+      const fieldEl = contentElement.querySelector(`[data-field="${field}"]`)
+      if (!fieldEl) return
+
+      const preCaretRange = range.cloneRange()
+      preCaretRange.selectNodeContents(fieldEl)
+      preCaretRange.setEnd(range.startContainer, range.startOffset)
+      const domPos = preCaretRange.toString().length
+
+      // 找到最接近 DOM 位置的文本位置
+      start = allOccurrences[0]
+      for (const pos of allOccurrences) {
+        if (Math.abs(pos - domPos) < Math.abs(start - domPos)) {
+          start = pos
+        }
+      }
+    }
+
+    // 检查是否与已有的高亮重叠
+    const existingAnnotations = annotations[cardId] || []
+    const fieldAnnotations = existingAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
+
+    let hasOverlap = false
+    for (const ann of fieldAnnotations) {
+      if (!(start + selectedText.length <= ann.startOffset || start >= ann.endOffset)) {
+        hasOverlap = true
+        break
+      }
+    }
+
+    if (hasOverlap) {
+      alert("该区域已有高亮，请选择其他区域")
+      window.getSelection()?.removeAllRanges()
+      return
+    }
 
     // 计算菜单位置
-    const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
 
-    onTextSelect(cardId, selectedText, start, end, field, {
+    onTextSelect(cardId, selectedText, start, start + selectedText.length, field, {
       x: rect.left + rect.width / 2,
       y: rect.top - 10
     })

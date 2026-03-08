@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Volume2, Heart, PenLine, Check, X, Eye, EyeOff } from "lucide-react"
 
@@ -112,16 +111,18 @@ export function StudyClient({
       if (e.key === "ArrowLeft") {
         e.preventDefault()
         if (currentIndex > 0) {
-          setCurrentIndex(currentIndex - 1)
-          setProgress(((currentIndex - 1) / total) * 100)
+          const newIndex = currentIndex - 1
+          setCurrentIndex(newIndex)
+          setProgress(((newIndex + 1) / total) * 100)
         }
         return
       }
       if (e.key === "ArrowRight") {
         e.preventDefault()
         if (currentIndex < total - 1) {
-          setCurrentIndex(currentIndex + 1)
-          setProgress(((currentIndex + 1) / total) * 100)
+          const newIndex = currentIndex + 1
+          setCurrentIndex(newIndex)
+          setProgress(((newIndex + 1) / total) * 100)
         }
         return
       }
@@ -380,8 +381,9 @@ export function StudyClient({
 
   const goNext = async () => {
     if (currentIndex < total - 1) {
-      setCurrentIndex(currentIndex + 1)
-      setProgress(((currentIndex + 1) / total) * 100)
+      const newIndex = currentIndex + 1
+      setCurrentIndex(newIndex)
+      setProgress(((newIndex + 1) / total) * 100)
       if (session?.user && currentCard) {
         await fetch("/api/progress", {
           method: "POST",
@@ -394,8 +396,9 @@ export function StudyClient({
 
   const goPrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1)
-      setProgress(((currentIndex - 1) / total) * 100)
+      const newIndex = currentIndex - 1
+      setCurrentIndex(newIndex)
+      setProgress(((newIndex + 1) / total) * 100)
     }
   }
 
@@ -480,26 +483,69 @@ export function StudyClient({
     else if (field === "exampleEn") fieldText = currentCard.exampleEn || ""
     else if (field === "analysis") fieldText = currentCard.analysis || ""
 
-    // 在原始文本中找到选中内容的位置
-    const start = fieldText.indexOf(selectedTextContent)
+    // 统计字段中该文本出现的次数
+    const allOccurrences: number[] = []
+    let searchPos = 0
+    while (true) {
+      const pos = fieldText.indexOf(selectedTextContent, searchPos)
+      if (pos === -1) break
+      allOccurrences.push(pos)
+      searchPos = pos + 1
+    }
 
-    if (start === -1) {
-      // 如果原始文本中找不到，使用 DOM 计算作为后备
+    let start: number
+    const range = selection.getRangeAt(0)
+
+    // 如果只出现一次，直接用 indexOf
+    if (allOccurrences.length === 1) {
+      start = allOccurrences[0]
+    } else {
+      // 多次出现时，使用 DOM 位置计算来确定是第几个
       const fieldEl = contentElement.querySelector(`[data-field="${field}"]`)
       if (!fieldEl) return
 
-      const range = selection.getRangeAt(0)
       const preCaretRange = range.cloneRange()
       preCaretRange.selectNodeContents(fieldEl)
       preCaretRange.setEnd(range.startContainer, range.startOffset)
-      const calculatedStart = preCaretRange.toString().length
-      setSelectedText({ text: selectedTextContent, start: calculatedStart, end: calculatedStart + selectedTextContent.length, field, cardId: currentCard.id })
-    } else {
-      setSelectedText({ text: selectedTextContent, start, end: start + selectedTextContent.length, field, cardId: currentCard.id })
+      const domPos = preCaretRange.toString().length
+
+      // 找到最接近 DOM 位置的文本位置
+      start = allOccurrences[0]
+      for (const pos of allOccurrences) {
+        if (Math.abs(pos - domPos) < Math.abs(start - domPos)) {
+          start = pos
+        }
+      }
     }
 
+    // 检查是否与已有的高亮重叠
+    const existingAnnotations = annotations[currentCard.id] || []
+    const fieldAnnotations = existingAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
+
+    let hasOverlap = false
+    for (const ann of fieldAnnotations) {
+      if (!(start + selectedTextContent.length <= ann.startOffset || start >= ann.endOffset)) {
+        hasOverlap = true
+        break
+      }
+    }
+
+    if (hasOverlap) {
+      alert("该区域已有高亮，请选择其他区域")
+      setShowMenu(false)
+      window.getSelection()?.removeAllRanges()
+      return
+    }
+
+    setSelectedText({
+      text: selectedTextContent,
+      start,
+      end: start + selectedTextContent.length,
+      field,
+      cardId: currentCard.id
+    })
+
     // 计算菜单位置
-    const range = selection.getRangeAt(0)
     const rect = range.getBoundingClientRect()
     setMenuPosition({
       x: rect.left + rect.width / 2,
@@ -577,7 +623,55 @@ export function StudyClient({
           <span>学习进度</span>
           <span>{currentIndex + 1} / {total}</span>
         </div>
-        <Progress value={progress} className="h-2" />
+        {/* 可拖动的进度条 */}
+        <div
+          className="relative h-2 bg-muted rounded-full cursor-pointer group"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect()
+            const x = e.clientX - rect.left
+            const percentage = x / rect.width
+            const newIndex = Math.round(percentage * (total - 1))
+            setCurrentIndex(newIndex)
+            setProgress(((newIndex + 1) / total) * 100)
+          }}
+        >
+          {/* 进度填充 */}
+          <div
+            className="absolute h-full bg-primary rounded-full transition-all duration-150"
+            style={{ width: `${((currentIndex + 1) / total) * 100}%` }}
+          />
+          {/* 滑块 */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+            style={{ left: `calc(${((currentIndex + 1) / total) * 100}% - 8px)` }}
+            onMouseDown={(e) => {
+              e.stopPropagation()
+              const progressBar = e.currentTarget.parentElement
+              if (!progressBar) return
+
+              const startX = e.clientX
+              const startIndex = currentIndex
+
+              const handleMouseMove = (moveEvent: MouseEvent) => {
+                const rect = progressBar.getBoundingClientRect()
+                const deltaX = moveEvent.clientX - startX
+                const deltaProgress = deltaX / rect.width
+                let newIndex = startIndex + Math.round(deltaProgress * total)
+                newIndex = Math.max(0, Math.min(total - 1, newIndex))
+                setCurrentIndex(newIndex)
+                setProgress(((newIndex + 1) / total) * 100)
+              }
+
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove)
+                document.removeEventListener('mouseup', handleMouseUp)
+              }
+
+              document.addEventListener('mousemove', handleMouseMove)
+              document.addEventListener('mouseup', handleMouseUp)
+            }}
+          />
+        </div>
       </div>
 
       {/* 阅读模式内容 */}
