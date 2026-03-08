@@ -103,6 +103,9 @@ export function StudyClient({
 
   const currentCard = cards[currentIndex]
 
+  // 用于跟踪本轮已计数的卡片，避免重复计数
+  const countedCardsRef = useRef<Set<string>>(new Set())
+
   // 监听答题状态变化，更新历史记录
   useEffect(() => {
     if (!activeFillCardId || !currentCard) return
@@ -121,13 +124,15 @@ export function StudyClient({
 
     // 只有当所有挖空都回答了才更新历史
     if (answeredCount === totalFills) {
-      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
-
-      // 检查是否已经记录过这一轮
-      const currentHistory = fillAnswerHistory[currentCard.id] || { correct: 0, incorrect: 0 }
-      if (currentHistory.correct > 0 || currentHistory.incorrect > 0) {
+      // 检查是否已在本轮计数过
+      if (countedCardsRef.current.has(currentCard.id)) {
         return
       }
+
+      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+
+      // 标记该卡片已计数
+      countedCardsRef.current.add(currentCard.id)
 
       // 每次所有挖空都回答完就累加计数
       setFillAnswerHistory(prev => {
@@ -142,6 +147,11 @@ export function StudyClient({
       })
     }
   }, [fillModeCards, activeFillCardId, currentCard, annotations])
+
+  // 切换卡片时清除计数标记，允许切回来后重新计数
+  useEffect(() => {
+    countedCardsRef.current.clear()
+  }, [currentIndex])
   const total = cards.length
 
   // 键盘快捷键
@@ -418,7 +428,7 @@ export function StudyClient({
   // 重置卡片状态
   const resetFillCard = () => {
     if (currentCard) {
-      // 只重置 checked 状态，不删除数据
+      // 清空挖空内容
       setFillModeCards(prev => {
         const cardData = prev[currentCard.id]
         if (!cardData) return prev
@@ -426,7 +436,7 @@ export function StudyClient({
         Object.keys(cardData).forEach(key => {
           const idx = parseInt(key)
           resetData[idx] = {
-            input: cardData[idx].input,
+            input: "",
             checked: false,
             isCorrect: null
           }
@@ -434,18 +444,23 @@ export function StudyClient({
         return { ...prev, [currentCard.id]: resetData }
       })
       setShowAnswer(false)
-      // 清除该卡片的历史记录，允许下次答题时重新计数
-      setFillAnswerHistory(prev => {
-        const newState = { ...prev }
-        delete newState[currentCard.id]
-        return newState
-      })
+      // 清除该卡片的计数标记，允许重新计数
+      countedCardsRef.current.delete(currentCard.id)
     }
   }
 
   const goNext = async () => {
     if (currentIndex < total - 1) {
       const newIndex = currentIndex + 1
+      // 切换卡片时自动退出填空模式，并清除当前卡片的答题状态
+      if (activeFillCardId) {
+        setActiveFillCardId(null)
+        setFillModeCards(prev => {
+          const newState = { ...prev }
+          delete newState[activeFillCardId]
+          return newState
+        })
+      }
       setCurrentIndex(newIndex)
       setProgress(((newIndex + 1) / total) * 100)
       if (session?.user && currentCard) {
@@ -460,6 +475,15 @@ export function StudyClient({
 
   const goPrev = () => {
     if (currentIndex > 0) {
+      // 切换卡片时自动退出填空模式，并清除当前卡片的答题状态
+      if (activeFillCardId) {
+        setActiveFillCardId(null)
+        setFillModeCards(prev => {
+          const newState = { ...prev }
+          delete newState[activeFillCardId]
+          return newState
+        })
+      }
       const newIndex = currentIndex - 1
       setCurrentIndex(newIndex)
       setProgress(((newIndex + 1) / total) * 100)

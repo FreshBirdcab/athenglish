@@ -62,6 +62,26 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
     }
   }, [session])
 
+  // 用于跟踪当前激活的卡片ID
+  const prevActiveCardRef = useRef<string | null>(null)
+
+  // 用于跟踪本轮已计数的卡片，避免重复计数
+  const countedCardsRef = useRef<Set<string>>(new Set())
+
+  // 切换卡片时清除之前卡片的答题状态
+  useEffect(() => {
+    const prevCardId = prevActiveCardRef.current
+    if (prevCardId && prevCardId !== activeFillCardId && fillModeCards[prevCardId]) {
+      // 清除之前卡片的 fillModeCards 状态
+      setFillModeCards(prev => {
+        const newState = { ...prev }
+        delete newState[prevCardId]
+        return newState
+      })
+    }
+    prevActiveCardRef.current = activeFillCardId
+  }, [activeFillCardId, fillModeCards])
+
   // 监听答题状态变化，更新历史记录
   useEffect(() => {
     if (!activeFillCardId) return
@@ -80,15 +100,17 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
     // 只有当所有挖空都回答了才更新历史
     if (answeredCount === totalFills) {
-      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
-
-      // 检查是否已经在历史中记录过这一轮
-      const currentHistory = fillAnswerHistory[activeFillCardId] || { correct: 0, incorrect: 0 }
-      // 如果已经有记录，说明这一轮已经处理过了，跳过
-      if (currentHistory.correct > 0 || currentHistory.incorrect > 0) {
+      // 检查是否已在本轮计数过
+      if (countedCardsRef.current.has(activeFillCardId)) {
         return
       }
 
+      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+
+      // 标记该卡片已计数
+      countedCardsRef.current.add(activeFillCardId)
+
+      // 每次所有挖空都回答完就累加计数
       setFillAnswerHistory(prev => {
         const history = prev[activeFillCardId] || { correct: 0, incorrect: 0 }
         return {
@@ -101,6 +123,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       })
     }
   }, [fillModeCards, activeFillCardId, annotations])
+
+  // 切换卡片或退出/进入挖空模式时清除之前卡片的答题状态和计数标记
+  useEffect(() => {
+    // 清除计数标记
+    countedCardsRef.current.clear()
+  }, [activeFillCardId])
 
   // 键盘快捷键
   useEffect(() => {
@@ -367,7 +395,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
   // 重置卡片状态
   const resetFillCard = (cardId: string) => {
-    // 只重置 checked 状态，不删除数据
+    // 清空挖空内容
     setFillModeCards(prev => {
       const cardData = prev[cardId]
       if (!cardData) return prev
@@ -375,7 +403,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       Object.keys(cardData).forEach(key => {
         const idx = parseInt(key)
         resetData[idx] = {
-          input: cardData[idx].input,
+          input: "",
           checked: false,
           isCorrect: null
         }
@@ -387,12 +415,8 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       delete newState[cardId]
       return newState
     })
-    // 清除该卡片的历史记录，允许下次答题时重新计数
-    setFillAnswerHistory(prev => {
-      const newState = { ...prev }
-      delete newState[cardId]
-      return newState
-    })
+    // 清除该卡片的计数标记，允许重新计数
+    countedCardsRef.current.delete(cardId)
   }
 
   // 切换显示答案
