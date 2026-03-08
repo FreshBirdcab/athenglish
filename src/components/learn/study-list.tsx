@@ -528,33 +528,31 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
         return (
           <Card key={card.id} className="break-inside-avoid">
-            {/* 显示历史答题累计次数 */}
-            {isFillMode && (
-              <div className="flex justify-center gap-3 pt-3 px-4">
+            <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
+              {/* 左侧：序号 + 答题统计 */}
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{index + 1}</Badge>
+                {/* 答题历史累计次数 - 常驻显示 */}
                 {(() => {
                   const history = fillAnswerHistory[card.id] || { correct: 0, incorrect: 0 }
                   const totalAnswered = history.correct + history.incorrect
-
-                  if (totalAnswered === 0) return null
-
-                  return (
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="flex items-center gap-1 text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                        <Check className="h-3 w-3" />
-                        {history.correct}
-                      </span>
-                      <span className="flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-                        <X className="h-3 w-3" />
-                        {history.incorrect}
-                      </span>
-                    </div>
-                  )
+                  if (totalAnswered > 0) {
+                    return (
+                      <div className="flex items-center gap-1 text-xs">
+                        <span className="flex items-center gap-0.5 text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
+                          <Check className="h-3 w-3" />
+                          {history.correct}
+                        </span>
+                        <span className="flex items-center gap-0.5 text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
+                          <X className="h-3 w-3" />
+                          {history.incorrect}
+                        </span>
+                      </div>
+                    )
+                  }
+                  return null
                 })()}
               </div>
-            )}
-            <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-              {/* 序号徽章 */}
-              <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{index + 1}</Badge>
 
               {/* 右侧：操作按钮组 */}
               <div className="flex items-center gap-0.5">
@@ -591,30 +589,25 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                       <PenLine className="h-3 w-3" />
                     </Button>
                   </div>
-                ) : hasAnyChecked ? (
-                  <>
-                    <Badge className={`text-xs h-6 mr-1 ${allCorrect ? "bg-green-100 text-green-700 border-green-300" : "bg-red-100 text-red-700 border-red-300"}`}>
-                      {allCorrect ? "正确" : "错误"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => {
-                        setActiveFillCardId(card.id)
-                        setShowAnswers(prev => ({ ...prev, [card.id]: false }))
-                        setTimeout(() => {
-                          const inputs = document.querySelectorAll(`[data-card-id="${card.id}"]`)
-                          const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
-                          if (input) input.focus()
-                        }, 100)
-                      }}
-                      className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-                      title="挖空学习"
-                    >
-                      <PenLine className="h-4 w-4" />
-                    </Button>
-                  </>
                 ) : (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setActiveFillCardId(card.id)
+                      setShowAnswers(prev => ({ ...prev, [card.id]: false }))
+                      setTimeout(() => {
+                        const inputs = document.querySelectorAll(`[data-card-id="${card.id}"]`)
+                        const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
+                        if (input) input.focus()
+                      }, 100)
+                    }}
+                    className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                    title="挖空学习"
+                  >
+                    <PenLine className="h-4 w-4" />
+                  </Button>
+                )}
                   <Button
                     variant="ghost"
                     size="icon"
