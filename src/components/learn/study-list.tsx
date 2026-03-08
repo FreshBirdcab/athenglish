@@ -62,6 +62,61 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
     }
   }, [session])
 
+  // 监听答题状态变化，更新历史记录
+  useEffect(() => {
+    if (!activeFillCardId) return
+
+    const cardState = fillModeCards[activeFillCardId]
+    if (!cardState) return
+
+    // 获取该卡片的挖空数量
+    const cardAnnotations = annotations[activeFillCardId] || []
+    const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+    const totalFills = highlightAnnotations.length
+
+    if (totalFills === 0) return
+
+    const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
+
+    // 只有当所有挖空都回答了才更新历史
+    if (answeredCount === totalFills) {
+      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+
+      // 检查是否已经在历史中记录过这一轮（通过检查是否已经有过相同的结果）
+      // 这里使用一个简单的方法：只在当前卡片没有历史记录时添加
+      const currentHistory = fillAnswerHistory[activeFillCardId]
+      const hasRecordedThisRound = currentHistory && (
+        (allCorrect && currentHistory.correct > 0 && !currentHistory.incorrect) ||
+        (!allCorrect && currentHistory.incorrect > 0)
+      )
+
+      // 更简单的方法：检查当前卡片是否刚进入挖空模式（通过查看是否有任何checked为true的状态）
+      // 如果已经有checked为true的状态，说明已经记录过了
+      const hasAnyChecked = Object.values(cardState).some((s: any) => s.checked === true)
+
+      // 这里我们用一个标志来追踪是否已经处理过
+      // 由于useEffect会在状态变化后触发，我们需要确保只在必要时更新
+
+      setFillAnswerHistory(prev => {
+        const history = prev[activeFillCardId] || { correct: 0, incorrect: 0 }
+        // 如果已经有记录且本次结果与上次相同，跳过
+        if (history.correct > 0 || history.incorrect > 0) {
+          // 检查是否需要更新：只有当本次全部正确但历史记录没有正确次数，或本次有错误但历史记录没有错误次数时
+          const needsUpdate = (allCorrect && history.correct === 0) || (!allCorrect && history.incorrect === 0)
+          if (!needsUpdate) return prev
+        }
+
+        return {
+          ...prev,
+          [activeFillCardId]: {
+            correct: history.correct + (allCorrect ? 1 : 0),
+            incorrect: history.incorrect + (allCorrect ? 0 : 1)
+          }
+        }
+      })
+    }
+  }, [fillModeCards, activeFillCardId, annotations, fillAnswerHistory])
+
   // 键盘快捷键
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -164,31 +219,6 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                     ...prev[cardId],
                     [currentIndex]: { ...currentFieldState, checked: true, isCorrect }
                   }
-                }
-
-                // 检查是否所有挖空都已回答
-                const newCardState = newState[cardId]
-                const totalFills = fillCount
-                const answeredCount = Object.values(newCardState).filter((s: any) => s.checked).length
-
-                // 如果所有挖空都回答了，更新历史记录
-                // 检查之前的答题状态：如果之前没有已回答的挖空，说明是新一轮答题，允许更新
-                const prevCardState = fillModeCards[cardId] || {}
-                const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
-
-                if (answeredCount === totalFills && prevAnsweredCount === 0) {
-                  const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
-
-                  setFillAnswerHistory(prev => {
-                    const history = prev[cardId] || { correct: 0, incorrect: 0 }
-                    return {
-                      ...prev,
-                      [cardId]: {
-                        correct: history.correct + (allCorrect ? 1 : 0),
-                        incorrect: history.incorrect + (allCorrect ? 0 : 1)
-                      }
-                    }
-                  })
                 }
 
                 return newState

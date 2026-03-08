@@ -62,6 +62,46 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
     }
   }, [session])
 
+  // 监听答题状态变化，更新历史记录
+  useEffect(() => {
+    // 遍历所有卡片，检查是否有卡片完成答题
+    Object.keys(fillModeCards).forEach(cardId => {
+      const cardState = fillModeCards[cardId]
+      if (!cardState) return
+
+      // 获取该卡片的挖空数量
+      const cardAnnotations = annotations[cardId] || []
+      const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+      const totalFills = highlightAnnotations.length
+
+      if (totalFills === 0) return
+
+      const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
+
+      // 只有当所有挖空都回答了才更新历史
+      if (answeredCount === totalFills) {
+        const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+
+        setFillAnswerHistory(prev => {
+          const history = prev[cardId] || { correct: 0, incorrect: 0 }
+          // 如果已经有记录且本次结果与上次相同，跳过
+          if (history.correct > 0 || history.incorrect > 0) {
+            const needsUpdate = (allCorrect && history.correct === 0) || (!allCorrect && history.incorrect === 0)
+            if (!needsUpdate) return prev
+          }
+
+          return {
+            ...prev,
+            [cardId]: {
+              correct: history.correct + (allCorrect ? 1 : 0),
+              incorrect: history.incorrect + (allCorrect ? 0 : 1)
+            }
+          }
+        })
+      }
+    })
+  }, [fillModeCards, annotations, fillAnswerHistory])
+
   const speak = (text: string) => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(text)
@@ -289,29 +329,6 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       })
 
       newState[cardId] = cardState
-
-      // 检查是否所有挖空都已回答，如果是则更新历史记录
-      const totalFills = annotationsWithHighlight.length
-      const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
-
-      // 检查之前的答题状态：如果之前没有已回答的挖空，说明是新一轮答题，允许更新
-      const prevCardState = prev[cardId] || {}
-      const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
-
-      if (answeredCount === totalFills && prevAnsweredCount === 0) {
-        const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
-
-        setFillAnswerHistory(prev => {
-          const history = prev[cardId] || { correct: 0, incorrect: 0 }
-          return {
-            ...prev,
-            [cardId]: {
-              correct: history.correct + (allCorrect ? 1 : 0),
-              incorrect: history.incorrect + (allCorrect ? 0 : 1)
-            }
-          }
-        })
-      }
 
       return newState
     })

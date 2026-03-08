@@ -102,6 +102,45 @@ export function StudyClient({
   }, [currentIndex])
 
   const currentCard = cards[currentIndex]
+
+  // 监听答题状态变化，更新历史记录
+  useEffect(() => {
+    if (!activeFillCardId || !currentCard) return
+
+    const cardState = fillModeCards[currentCard.id]
+    if (!cardState) return
+
+    // 获取该卡片的挖空数量
+    const cardAnnotations = annotations[currentCard.id] || []
+    const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+    const totalFills = highlightAnnotations.length
+
+    if (totalFills === 0) return
+
+    const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
+
+    // 只有当所有挖空都回答了才更新历史
+    if (answeredCount === totalFills) {
+      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+
+      setFillAnswerHistory(prev => {
+        const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
+        // 如果已经有记录且本次结果与上次相同，跳过
+        if (history.correct > 0 || history.incorrect > 0) {
+          const needsUpdate = (allCorrect && history.correct === 0) || (!allCorrect && history.incorrect === 0)
+          if (!needsUpdate) return prev
+        }
+
+        return {
+          ...prev,
+          [currentCard.id]: {
+            correct: history.correct + (allCorrect ? 1 : 0),
+            incorrect: history.incorrect + (allCorrect ? 0 : 1)
+          }
+        }
+      })
+    }
+  }, [fillModeCards, activeFillCardId, currentCard, annotations, fillAnswerHistory])
   const total = cards.length
 
   // 键盘快捷键
@@ -193,31 +232,6 @@ export function StudyClient({
                     ...prev[currentCard.id],
                     [currentIdx]: { ...currentFieldState, checked: true, isCorrect }
                   }
-                }
-
-                // 检查是否所有挖空都已回答
-                const newCardState = newState[currentCard.id]
-                const totalFills = fillCount
-                const answeredCount = Object.values(newCardState).filter((s: any) => s.checked).length
-
-                // 如果所有挖空都回答了，更新历史记录
-                // 检查之前的答题状态：如果之前没有已回答的挖空，说明是新一轮答题，允许更新
-                const prevCardState = fillModeCards[currentCard.id] || {}
-                const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
-
-                if (answeredCount === totalFills && prevAnsweredCount === 0) {
-                  const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
-
-                  setFillAnswerHistory(prev => {
-                    const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
-                    return {
-                      ...prev,
-                      [currentCard.id]: {
-                        correct: history.correct + (allCorrect ? 1 : 0),
-                        incorrect: history.incorrect + (allCorrect ? 0 : 1)
-                      }
-                    }
-                  })
                 }
 
                 return newState
