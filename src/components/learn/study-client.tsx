@@ -94,8 +94,6 @@ export function StudyClient({
   const [showAnswer, setShowAnswer] = useState(false)
   // 当前聚焦的挖空索引
   const [focusedFillIndex, setFocusedFillIndex] = useState<number | null>(null)
-  // 用于防止历史记录重复更新
-  const lastUpdatedCardRef = useRef<string | null>(null)
 
   // 切换卡片时重置挖空状态
   useEffect(() => {
@@ -203,12 +201,12 @@ export function StudyClient({
                 const answeredCount = Object.values(newCardState).filter((s: any) => s.checked).length
 
                 // 如果所有挖空都回答了，更新历史记录
-                // 使用ref防止同一张卡片在一次答题过程中被重复计数
-                if (answeredCount === totalFills && lastUpdatedCardRef.current !== currentCard.id) {
-                  const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
+                // 检查之前的答题状态：如果之前没有已回答的挖空，说明是新一轮答题，允许更新
+                const prevCardState = fillModeCards[currentCard.id] || {}
+                const prevAnsweredCount = Object.values(prevCardState).filter((s: any) => s.checked).length
 
-                  // 标记此卡片已更新，防止重复
-                  lastUpdatedCardRef.current = currentCard.id
+                if (answeredCount === totalFills && prevAnsweredCount === 0) {
+                  const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
 
                   setFillAnswerHistory(prev => {
                     const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
@@ -411,10 +409,6 @@ export function StudyClient({
         return newState
       })
       setShowAnswer(false)
-      // 清空该卡片的更新标记，允许下次答题时重新计数
-      if (lastUpdatedCardRef.current === currentCard.id) {
-        lastUpdatedCardRef.current = null
-      }
     }
   }
 
