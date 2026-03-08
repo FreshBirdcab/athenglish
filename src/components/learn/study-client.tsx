@@ -123,6 +123,12 @@ export function StudyClient({
     if (answeredCount === totalFills) {
       const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
 
+      // 检查是否已经记录过这一轮
+      const currentHistory = fillAnswerHistory[currentCard.id] || { correct: 0, incorrect: 0 }
+      if (currentHistory.correct > 0 || currentHistory.incorrect > 0) {
+        return
+      }
+
       // 每次所有挖空都回答完就累加计数
       setFillAnswerHistory(prev => {
         const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
@@ -135,7 +141,7 @@ export function StudyClient({
         }
       })
     }
-  }, [fillModeCards, activeFillCardId, currentCard, annotations, fillAnswerHistory])
+  }, [fillModeCards, activeFillCardId, currentCard, annotations])
   const total = cards.length
 
   // 键盘快捷键
