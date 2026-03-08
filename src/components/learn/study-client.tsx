@@ -148,6 +148,24 @@ export function StudyClient({
     }
   }, [fillModeCards, activeFillCardId, currentCard, annotations])
 
+  // 监听卡片索引变化，自动退出挖空模式
+  const prevIndexRef = useRef(currentIndex)
+  useEffect(() => {
+    // 只有当索引真正改变时才处理
+    if (prevIndexRef.current !== currentIndex) {
+      // 退出挖空模式并清除答题状态
+      if (activeFillCardId) {
+        setActiveFillCardId(null)
+        setFillModeCards(prev => {
+          const newState = { ...prev }
+          delete newState[activeFillCardId]
+          return newState
+        })
+      }
+      prevIndexRef.current = currentIndex
+    }
+  }, [currentIndex, activeFillCardId])
+
   // 切换卡片时清除计数标记，允许切回来后重新计数
   useEffect(() => {
     countedCardsRef.current.clear()
