@@ -241,6 +241,10 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       delete newState[cardId]
       return newState
     })
+    // 清空该卡片的更新标记，允许下次答题时重新计数
+    if (lastUpdatedCardRef.current === cardId) {
+      lastUpdatedCardRef.current = null
+    }
   }
 
   // 检查卡片是否有答案

@@ -364,6 +364,10 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       delete newState[cardId]
       return newState
     })
+    // 清空该卡片的更新标记，允许下次答题时重新计数
+    if (lastUpdatedCardRef.current === cardId) {
+      lastUpdatedCardRef.current = null
+    }
   }
 
   // 切换显示答案

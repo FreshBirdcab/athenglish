@@ -411,6 +411,10 @@ export function StudyClient({
         return newState
       })
       setShowAnswer(false)
+      // 清空该卡片的更新标记，允许下次答题时重新计数
+      if (lastUpdatedCardRef.current === currentCard.id) {
+        lastUpdatedCardRef.current = null
+      }
     }
   }
 
