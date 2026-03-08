@@ -82,18 +82,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
     if (answeredCount === totalFills) {
       const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
 
-      // 检查是否已经在历史中记录过这一轮（通过检查是否已经有过相同的结果）
-      // 这里使用一个简单的方法：只在当前卡片没有历史记录时添加
-      const currentHistory = fillAnswerHistory[activeFillCardId]
-      const hasRecordedThisRound = currentHistory && (
-        (allCorrect && currentHistory.correct > 0 && !currentHistory.incorrect) ||
-        (!allCorrect && currentHistory.incorrect > 0)
-      )
-
-      // 更简单的方法：检查当前卡片是否刚进入挖空模式（通过查看是否有任何checked为true的状态）
-      // 如果已经有checked为true的状态，说明已经记录过了
-      // 每次所有挖空都回答完就累加计数
-      // 使用fillAnswerHistory来判断是否已经记录过这一轮
+      // 检查是否已经在历史中记录过这一轮
       const currentHistory = fillAnswerHistory[activeFillCardId] || { correct: 0, incorrect: 0 }
       // 如果已经有记录，说明这一轮已经处理过了，跳过
       if (currentHistory.correct > 0 || currentHistory.incorrect > 0) {
