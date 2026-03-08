@@ -174,6 +174,8 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                 // 如果所有挖空都回答了，更新历史记录
                 if (answeredCount === totalFills) {
                   const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
+
+                  // 先更新历史记录
                   setFillAnswerHistory(prev => {
                     const history = prev[cardId] || { correct: 0, incorrect: 0 }
                     return {
@@ -184,6 +186,15 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                       }
                     }
                   })
+
+                  // 然后清空当前卡片的答题状态，允许下次答题
+                  setTimeout(() => {
+                    setFillModeCards(prev => {
+                      const newFillState = { ...prev }
+                      delete newFillState[cardId]
+                      return newFillState
+                    })
+                  }, 0)
                 }
 
                 return newState
@@ -590,24 +601,6 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
                     </Button>
                   </div>
                 ) : (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => {
-                      setActiveFillCardId(card.id)
-                      setShowAnswers(prev => ({ ...prev, [card.id]: false }))
-                      setTimeout(() => {
-                        const inputs = document.querySelectorAll(`[data-card-id="${card.id}"]`)
-                        const input = Array.from(inputs).find(el => el.getAttribute('data-fill-index') === '0') as HTMLInputElement
-                        if (input) input.focus()
-                      }, 100)
-                    }}
-                    className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
-                    title="挖空学习"
-                  >
-                    <PenLine className="h-4 w-4" />
-                  </Button>
-                )}
                   <Button
                     variant="ghost"
                     size="icon"

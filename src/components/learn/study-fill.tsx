@@ -296,6 +296,8 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
       if (answeredCount === totalFills) {
         const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+
+        // 先更新历史记录
         setFillAnswerHistory(prev => {
           const history = prev[cardId] || { correct: 0, incorrect: 0 }
           return {
@@ -306,6 +308,15 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
             }
           }
         })
+
+        // 然后清空当前卡片的答题状态，允许下次答题
+        setTimeout(() => {
+          setFillModeCards(prev => {
+            const newFillState = { ...prev }
+            delete newFillState[cardId]
+            return newFillState
+          })
+        }, 0)
       }
 
       return newState

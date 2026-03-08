@@ -203,6 +203,8 @@ export function StudyClient({
                 // 如果所有挖空都回答了，更新历史记录
                 if (answeredCount === totalFills) {
                   const allCorrect = Object.values(newCardState).every((s: any) => s.isCorrect === true)
+
+                  // 先更新历史记录
                   setFillAnswerHistory(prev => {
                     const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
                     return {
@@ -213,6 +215,15 @@ export function StudyClient({
                       }
                     }
                   })
+
+                  // 然后清空当前卡片的答题状态，允许下次答题
+                  setTimeout(() => {
+                    setFillModeCards(prev => {
+                      const newFillState = { ...prev }
+                      delete newFillState[currentCard.id]
+                      return newFillState
+                    })
+                  }, 0)
                 }
 
                 return newState
