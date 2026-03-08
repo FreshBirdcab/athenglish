@@ -59,8 +59,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType }:
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // 挖空模式相关状态
-  const [fillModeCards, setFillModeCards] = useState<Record<string, { input: string; checked: boolean; isCorrect: boolean | null }>>({})
+  // 挖空模式相关状态 - 支持每个卡片多个挖空区域
+  const [fillModeCards, setFillModeCards] = useState<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>({})
 
   // 点击外部关闭菜单
   useEffect(() => {

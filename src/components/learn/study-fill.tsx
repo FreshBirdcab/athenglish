@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Volume2, Heart, Check, X, Eye, EyeOff } from "lucide-react"
+import { Volume2, Heart, Check, X, Eye, EyeOff, PenLine } from "lucide-react"
 
 interface Card {
   id: string
@@ -31,8 +31,14 @@ interface StudyFillProps {
   cards: Card[]
   bookType: string
   annotations: Record<string, Annotation[]>
-  fillModeCards: Record<string, { input: string; checked: boolean; isCorrect: boolean | null }>
-  setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, { input: string; checked: boolean; isCorrect: boolean | null }>>>
+  fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
+  setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+}
+
+interface FillState {
+  input: string
+  checked: boolean
+  isCorrect: boolean | null
 }
 
 export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards }: StudyFillProps) {
@@ -84,17 +90,11 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
     }
   }
 
-  // 获取卡片中有高亮的字段
-  const getHighlightedFields = (cardId: string) => {
+  // 获取卡片中有高亮的字段和位置
+  const getHighlightedAnnotations = (cardId: string) => {
     const cardAnnotations = annotations[cardId] || []
-    // 只返回有高亮的字段
-    const fieldsWithHighlights = new Set<string>()
-    cardAnnotations.forEach((a: Annotation) => {
-      if (a.highlight) {
-        fieldsWithHighlights.add(a.field)
-      }
-    })
-    return Array.from(fieldsWithHighlights)
+    // 只返回有高亮的批注
+    return cardAnnotations.filter((a: Annotation) => a.highlight)
   }
 
   // 渲染挖空文本
@@ -118,7 +118,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
     const parts: React.JSX.Element[] = []
     let lastEnd = 0
-    const cardState = fillModeCards[cardId]
+    const cardState = fillModeCards[cardId] || {}
     const isShowAnswer = showAnswers[cardId]
 
     validAnnotations.forEach((ann: Annotation, index: number) => {
@@ -130,8 +130,10 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
       // 获取正确答案
       const answer = text.slice(ann.startOffset, ann.endOffset)
-      const userInput = cardState?.input || ""
-      const isChecked = cardState?.checked || false
+      const fieldState = cardState[index] || { input: "", checked: false, isCorrect: null }
+      const userInput = fieldState.input
+      const isChecked = fieldState.checked
+      const fieldIsCorrect = fieldState.isCorrect
 
       // 挖空区域
       let fillContent: React.ReactNode
@@ -145,12 +147,11 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
         )
       } else if (isChecked) {
         // 已检查
-        const isCorrect = cardState.isCorrect
         fillContent = (
           <span className={`inline-block min-w-[60px] px-2 py-0.5 rounded border font-medium ${
-          isCorrect
-            ? "bg-green-100 text-green-800 border-green-300"
-            : "bg-red-100 text-red-800 border-red-300"
+            fieldIsCorrect
+              ? "bg-green-100 text-green-800 border-green-300"
+              : "bg-red-100 text-red-800 border-red-300"
           }`}>
             {answer}
           </span>
@@ -166,12 +167,15 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
             onChange={(e) => {
               setFillModeCards(prev => ({
                 ...prev,
-                [cardId]: { ...prev[cardId], input: e.target.value, checked: false, isCorrect: null }
+                [cardId]: {
+                  ...(prev[cardId] || {}),
+                  [index]: { input: e.target.value, checked: false, isCorrect: null }
+                }
               }))
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
-                checkAnswer(cardId, answer)
+                checkAnswer(cardId, index, answer)
               }
             }}
           />
@@ -195,17 +199,21 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
   }
 
   // 检查答案
-  const checkAnswer = (cardId: string, answer: string) => {
-    const cardState = fillModeCards[cardId]
-    if (!cardState) return
+  const checkAnswer = (cardId: string, index: number, answer: string) => {
+    const cardState = fillModeCards[cardId] || {}
+    const fieldState = cardState[index]
+    if (!fieldState) return
 
-    const userInput = cardState.input.trim().toLowerCase()
+    const userInput = fieldState.input.trim().toLowerCase()
     const correctAnswer = answer.trim().toLowerCase()
     const isCorrect = userInput === correctAnswer
 
     setFillModeCards(prev => ({
       ...prev,
-      [cardId]: { ...prev[cardId], checked: true, isCorrect }
+      [cardId]: {
+        ...(prev[cardId] || {}),
+        [index]: { ...fieldState, checked: true, isCorrect }
+      }
     }))
   }
 
@@ -219,14 +227,68 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
   // 重置卡片状态
   const resetCard = (cardId: string) => {
-    setFillModeCards(prev => ({
-      ...prev,
-      [cardId]: { input: "", checked: false, isCorrect: null }
-    }))
-    setShowAnswers(prev => ({
-      ...prev,
-      [cardId]: false
-    }))
+    setFillModeCards(prev => {
+      const newState = { ...prev }
+      delete newState[cardId]
+      return newState
+    })
+    setShowAnswers(prev => {
+      const newState = { ...prev }
+      delete newState[cardId]
+      return newState
+    })
+  }
+
+  // 检查卡片是否有答案
+  const checkCardAnswers = (cardId: string, text: string) => {
+    const cardAnnotations = annotations[cardId] || []
+    const annotationsWithHighlight = cardAnnotations.filter((a: Annotation) => a.highlight)
+    if (annotationsWithHighlight.length === 0) return
+
+    // 收集每个字段的高亮
+    const fieldAnnotations: { field: string; annotations: Annotation[] }[] = []
+    const fields = ["primary", "usageNote", "exampleEn", "analysis"]
+    fields.forEach(field => {
+      const fieldAnns = cardAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
+      if (fieldAnns.length > 0) {
+        fieldAnnotations.push({ field, annotations: fieldAnns })
+      }
+    })
+
+    // 检查每个高亮
+    fieldAnnotations.forEach(({ annotations: anns }) => {
+      const sorted = [...anns].sort((a, b) => a.startOffset - b.startOffset)
+      let lastEnd = 0
+      sorted.forEach((ann, idx) => {
+        if (ann.startOffset >= lastEnd) {
+          const cardState = fillModeCards[cardId] || {}
+          const fieldState = cardState[idx]
+          if (fieldState && fieldState.input.trim()) {
+            const answer = "" // 不需要答案，只需要触发检查
+            // 获取原文来验证
+            let fieldText = ""
+            if (ann.field === "primary") fieldText = cards.find(c => c.id === cardId)?.contentPrimary || ""
+            else if (ann.field === "usageNote") fieldText = cards.find(c => c.id === cardId)?.usageNote || ""
+            else if (ann.field === "exampleEn") fieldText = cards.find(c => c.id === cardId)?.exampleEn || ""
+            else if (ann.field === "analysis") fieldText = cards.find(c => c.id === cardId)?.analysis || ""
+
+            const correctAnswer = fieldText.slice(ann.startOffset, ann.endOffset).trim().toLowerCase()
+            const userInput = fieldState.input.trim().toLowerCase()
+            const isCorrect = userInput === correctAnswer
+
+            setFillModeCards(prev => ({
+              ...prev,
+              [cardId]: {
+                ...(prev[cardId] || {}),
+                [idx]: { ...fieldState, checked: true, isCorrect }
+              }
+            }))
+
+            lastEnd = ann.endOffset
+          }
+        }
+      })
+    })
   }
 
   const getCardFields = (card: Card) => {
@@ -242,12 +304,14 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
     <div className="space-y-4">
       {cards.map((card, index) => {
         const isFavorited = favorites.includes(card.id)
-        const highlightedFields = getHighlightedFields(card.id)
-        const cardState = fillModeCards[card.id]
-        const isChecked = cardState?.checked || false
+        const highlightedAnnotations = getHighlightedAnnotations(card.id)
+        const cardState = fillModeCards[card.id] || {}
+        const hasAnyChecked = Object.values(cardState).some(s => s.checked)
+        const allCorrect = Object.values(cardState).every(s => !s.input || s.isCorrect)
+        const isShowAnswer = showAnswers[card.id]
 
         // 如果没有高亮，显示提示
-        if (highlightedFields.length === 0) {
+        if (highlightedAnnotations.length === 0) {
           return (
             <Card key={card.id} className="break-inside-avoid opacity-60">
               <CardHeader className="py-3">
@@ -263,19 +327,23 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
           )
         }
 
+        // 获取有高亮的字段
+        const fieldsWithHighlights = new Set<string>()
+        highlightedAnnotations.forEach((a: Annotation) => fieldsWithHighlights.add(a.field))
+
         return (
           <Card key={card.id} className="break-inside-avoid">
             <CardHeader className="flex flex-row items-center justify-between py-3">
               <div className="flex items-center gap-2">
                 <Badge variant="outline">#{index + 1}</Badge>
-                {isChecked && (
-                  cardState.isCorrect ? (
+                {hasAnyChecked && (
+                  allCorrect ? (
                     <Badge className="bg-green-100 text-green-700 border-green-300">
                       <Check className="h-3 w-3 mr-1" /> 正确
                     </Badge>
                   ) : (
                     <Badge className="bg-red-100 text-red-700 border-red-300">
-                      <X className="h-3 w-3 mr-1" /> 错误
+                      <X className="h-3 w-3 mr-1" /> 有错误
                     </Badge>
                   )
                 )}
@@ -300,7 +368,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                 <div className="space-y-3">
                   <div className="text-center">
                     <h3 className="text-2xl font-bold text-primary mb-1" data-field="primary">
-                      {highlightedFields.includes("primary")
+                      {fieldsWithHighlights.has("primary")
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : card.contentPrimary}
                     </h3>
@@ -309,7 +377,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                   {card.usageNote && (
                     <div className="p-2 bg-muted/50 rounded-lg" data-field="usageNote">
                       <p className="text-sm">
-                        {highlightedFields.includes("usageNote")
+                        {fieldsWithHighlights.has("usageNote")
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : card.usageNote}
                       </p>
@@ -318,7 +386,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                   {card.exampleEn && (
                     <div className="border-l-4 border-primary pl-3" data-field="exampleEn">
                       <p className="text-sm italic">
-                        {highlightedFields.includes("exampleEn")
+                        {fieldsWithHighlights.has("exampleEn")
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : card.exampleEn}
                       </p>
@@ -335,7 +403,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                 <div className="space-y-3">
                   <div className="p-3 bg-primary/5 rounded-xl border" data-field="primary">
                     <p className="text-xl font-semibold text-primary">
-                      {highlightedFields.includes("primary")
+                      {fieldsWithHighlights.has("primary")
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : card.contentPrimary}
                     </p>
@@ -347,7 +415,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                     <div className="space-y-1" data-field="usageNote">
                       <p className="text-xs font-medium">用法说明</p>
                       <p className="text-sm text-muted-foreground">
-                        {highlightedFields.includes("usageNote")
+                        {fieldsWithHighlights.has("usageNote")
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : card.usageNote}
                       </p>
@@ -357,7 +425,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                     <div className="space-y-1" data-field="exampleEn">
                       <p className="text-xs font-medium">例句</p>
                       <p className="text-sm italic border-l-2 pl-2 border-primary">
-                        {highlightedFields.includes("exampleEn")
+                        {fieldsWithHighlights.has("exampleEn")
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : card.exampleEn}
                       </p>
@@ -374,7 +442,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                 <div className="space-y-3">
                   <div className="text-center py-1" data-field="primary">
                     <p className="text-base">
-                      {highlightedFields.includes("primary")
+                      {fieldsWithHighlights.has("primary")
                         ? renderFillInText(card.contentPrimary, card.id, "primary")
                         : card.contentPrimary}
                     </p>
@@ -386,7 +454,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                     <div className="p-2 bg-muted/50 rounded-lg" data-field="usageNote">
                       <p className="text-xs font-medium">要点</p>
                       <p className="text-sm text-muted-foreground">
-                        {highlightedFields.includes("usageNote")
+                        {fieldsWithHighlights.has("usageNote")
                           ? renderFillInText(card.usageNote, card.id, "usageNote")
                           : card.usageNote}
                       </p>
@@ -396,7 +464,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                     <div className="space-y-1" data-field="exampleEn">
                       <p className="text-xs font-medium">示例</p>
                       <p className="text-sm">
-                        {highlightedFields.includes("exampleEn")
+                        {fieldsWithHighlights.has("exampleEn")
                           ? renderFillInText(card.exampleEn, card.id, "exampleEn")
                           : card.exampleEn}
                       </p>
@@ -409,7 +477,7 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                     <div className="p-2 bg-primary/5 rounded-lg" data-field="analysis">
                       <p className="text-xs font-medium">分析</p>
                       <p className="text-xs text-muted-foreground">
-                        {highlightedFields.includes("analysis")
+                        {fieldsWithHighlights.has("analysis")
                           ? renderFillInText(card.analysis, card.id, "analysis")
                           : card.analysis}
                       </p>
@@ -418,14 +486,14 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
                 </div>
               )}
 
-              {/* 操作按钮 */}
+              {/* 操作按钮 - 每个卡片内部 */}
               <div className="flex justify-end gap-2 pt-2 border-t">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => toggleShowAnswer(card.id)}
                 >
-                  {showAnswers[card.id] ? (
+                  {isShowAnswer ? (
                     <>
                       <EyeOff className="h-4 w-4 mr-1" /> 隐藏答案
                     </>
