@@ -28,7 +28,6 @@ export function Header() {
               <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <span className="text-xl font-bold gradient-text">AthEnglish</span>
-            <span className="text-xs text-muted-foreground hidden sm:inline">· 雅典英语</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm">

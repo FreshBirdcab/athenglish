@@ -61,9 +61,11 @@ interface StudyClientProps {
   setActiveFillCardId: (id: string | null) => void
   fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+  fieldStyles?: Record<string, FieldStyle> | null
+  // 答题历史相关
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
-  fieldStyles?: Record<string, FieldStyle> | null
+  saveFillAnswerHistory: (cardId: string, correct: number, incorrect: number) => void
 }
 
 export function StudyClient({
@@ -89,9 +91,10 @@ export function StudyClient({
   setActiveFillCardId,
   fillModeCards,
   setFillModeCards,
+  fieldStyles,
   fillAnswerHistory,
   setFillAnswerHistory,
-  fieldStyles
+  saveFillAnswerHistory
 }: StudyClientProps) {
   const { data: session } = useSession()
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -125,7 +128,7 @@ export function StudyClient({
   // 用于标记是否刚刚重置过
   const justResetRef = useRef(false)
 
-  // 监听答题状态变化，更新历史记录
+  // 监听答题状态变化，更新历史记录并保存到服务器
   useEffect(() => {
     if (!activeFillCardId || !currentCard) return
 
@@ -162,16 +165,19 @@ export function StudyClient({
       // 每次所有挖空都回答完就累加计数
       setFillAnswerHistory(prev => {
         const history = prev[currentCard.id] || { correct: 0, incorrect: 0 }
+        const newHistory = {
+          correct: history.correct + (allCorrect ? 1 : 0),
+          incorrect: history.incorrect + (allCorrect ? 0 : 1)
+        }
+        // 保存到服务器
+        saveFillAnswerHistory(currentCard.id, newHistory.correct, newHistory.incorrect)
         return {
           ...prev,
-          [currentCard.id]: {
-            correct: history.correct + (allCorrect ? 1 : 0),
-            incorrect: history.incorrect + (allCorrect ? 0 : 1)
-          }
+          [currentCard.id]: newHistory
         }
       })
     }
-  }, [fillModeCards, activeFillCardId, currentCard, annotations])
+  }, [fillModeCards, activeFillCardId, currentCard, annotations, setFillAnswerHistory, saveFillAnswerHistory])
 
   // 监听卡片索引变化，自动退出挖空模式
   const prevIndexRef = useRef(currentIndex)
@@ -821,29 +827,16 @@ export function StudyClient({
           <div className="w-full">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-                {/* 左侧：序号 + 答题统计 */}
+                {/* 左侧：序号和答题历史 */}
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{currentIndex + 1}</Badge>
-                  {/* 答题历史累计次数 - 常驻显示 */}
-                  {(() => {
-                    const history = fillAnswerHistory[currentCard.id] || { correct: 0, incorrect: 0 }
-                    const totalAnswered = history.correct + history.incorrect
-                    if (totalAnswered > 0) {
-                      return (
-                        <div className="flex items-center gap-1 text-xs">
-                          <span className="flex items-center gap-0.5 text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                            <Check className="h-3 w-3" />
-                            {history.correct}
-                          </span>
-                          <span className="flex items-center gap-0.5 text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
-                            <X className="h-3 w-3" />
-                            {history.incorrect}
-                          </span>
-                        </div>
-                      )
-                    }
-                    return null
-                  })()}
+                  {/* 显示答题历史 */}
+                  {fillAnswerHistory[currentCard.id] && (
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="text-green-600 font-medium">✓{fillAnswerHistory[currentCard.id].correct}</span>
+                      <span className="text-red-500 font-medium">✗{fillAnswerHistory[currentCard.id].incorrect}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* 右侧：操作按钮组 */}

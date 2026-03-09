@@ -1,8 +1,7 @@
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { prisma } from "@/lib/prisma"
-import { BookOpen, MessageCircle, PenTool, Layers, Sparkles, Star } from "lucide-react"
+import { BookOpen, MessageCircle, PenTool, Sparkles, ChevronRight, Layers } from "lucide-react"
 
 async function getBooks() {
   const books = await prisma.book.findMany({
@@ -32,19 +31,6 @@ function getBookStats(book: Awaited<ReturnType<typeof getBooks>>[0]) {
   return { chapterCount, subChapterCount, cardCount }
 }
 
-function getBookIcon(type: string) {
-  switch (type) {
-    case 'vocabulary':
-      return BookOpen
-    case 'sentence':
-      return PenTool
-    case 'corpus':
-      return MessageCircle
-    default:
-      return Layers
-  }
-}
-
 function getBookDescription(subType: string) {
   switch (subType) {
     case 'spoken':
@@ -64,67 +50,94 @@ function getBookDescription(subType: string) {
   }
 }
 
+function getBookIcon(type: string) {
+  switch (type) {
+    case 'vocabulary':
+      return BookOpen
+    case 'sentence':
+      return PenTool
+    case 'corpus':
+      return MessageCircle
+    default:
+      return Layers
+  }
+}
+
 export default async function HomePage() {
   const books = await getBooks()
 
   return (
-    <div className="content-container py-12">
-      {/* 英雄区域 */}
-      <section className="mb-16 text-center">
-        <div className="relative inline-block mb-6">
-          {/* 装饰性光晕 */}
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-200 to-blue-200 blur-3xl opacity-30 rounded-full" />
-          {/* 标题 */}
-          <h1 className="relative text-5xl md:text-6xl font-bold gradient-text animate-fade-in">
+    <div className="min-h-screen bg-background">
+      {/* 顶部区域 */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-primary via-primary/90 to-accent py-16">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
+          <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+        </div>
+        <div className="relative container mx-auto px-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 tracking-tight">
             AthEnglish
           </h1>
-          {/* 装饰星星 */}
-          <Sparkles className="absolute -top-4 -right-8 h-6 w-6 text-amber-400 animate-float" />
-          <Star className="absolute top-0 -left-6 h-4 w-4 text-amber-400 animate-float" style={{ animationDelay: '0.5s' }} />
+          <p className="text-white/80 text-lg mb-2">
+            沉浸式语言学习平台
+          </p>
+          <p className="text-white/60 max-w-lg">
+            通过词汇、句型、语料三大模块，
+            探索古希腊智慧与现代英语学习的完美融合。
+          </p>
         </div>
-
-        <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-4 animate-slide-up">
-          沉浸式语言学习平台 · 源自雅典智慧
-        </p>
-
-        <p className="text-muted-foreground max-w-xl mx-auto animate-slide-up stagger-1">
-          探索古希腊智慧与现代英语学习的完美融合，
-          通过词汇、句型、语料三大模块，开启你的语言精进之旅。
-        </p>
-
-        {/* 装饰分隔线 */}
-        <div className="greek-divider mt-8 max-w-md mx-auto" />
-      </section>
+      </div>
 
       {/* 学习模块 */}
-      <section>
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="h-px bg-gradient-to-r from-transparent to-primary/30 w-16" />
-          <h2 className="text-2xl font-semibold title-decoration">选择你的学习之旅</h2>
-          <div className="h-px bg-gradient-to-l from-transparent to-primary/30 w-16" />
-        </div>
-
+      <div className="container mx-auto px-4 py-8 -mt-3">
         <div className="grid gap-8 lg:grid-cols-3">
           {/* 词汇栏 */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
+            <div className="flex items-center gap-2 pb-3 border-b border-border">
               <BookOpen className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">词汇</h3>
+              <h3 className="font-semibold text-lg">词汇</h3>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {books.filter(b => b.type === 'vocabulary').length} 本
+              </span>
             </div>
-            <div>
-              {books.filter(b => b.type === 'vocabulary').map((book) => {
+            <div className="space-y-4">
+              {books.filter(b => b.type === 'vocabulary').map((book, index) => {
                 const stats = getBookStats(book)
                 return (
-                  <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
-                    <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{book.name}</CardTitle>
-                        <CardDescription className="text-xs">
-                          {getBookDescription(book.subType || '')}
-                        </CardDescription>
+                  <Link
+                    key={book.id}
+                    href={`/books/${encodeURIComponent(book.id)}`}
+                    className="block"
+                  >
+                    <Card
+                      className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 bg-card/80"
+                      style={{
+                        animation: `fadeSlideIn 0.4s ease-out forwards`,
+                        animationDelay: `${index * 0.1}s`,
+                        opacity: 0
+                      }}
+                    >
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex items-start gap-3">
+                          {/* 序号徽章 */}
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base group-hover:text-primary transition-colors truncate">
+                                {book.name}
+                              </CardTitle>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 ml-2" />
+                            </div>
+                            <CardDescription className="text-xs mt-1">
+                              {getBookDescription(book.subType || '')}
+                            </CardDescription>
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex justify-between text-xs text-muted-foreground">
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex justify-between text-xs text-muted-foreground pl-11">
                           <span>{stats.chapterCount} 章</span>
                           <span>{stats.subChapterCount} 节</span>
                           <span>{stats.cardCount} 词</span>
@@ -134,32 +147,60 @@ export default async function HomePage() {
                   </Link>
                 )
               })}
+              {books.filter(b => b.type === 'vocabulary').length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">暂无词汇书籍</p>
+              )}
             </div>
-            {books.filter(b => b.type === 'vocabulary').length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">暂无词汇书籍</p>
-            )}
           </div>
 
           {/* 句型栏 */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
+            <div className="flex items-center gap-2 pb-3 border-b border-border">
               <PenTool className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">句型</h3>
+              <h3 className="font-semibold text-lg">句型</h3>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {books.filter(b => b.type === 'sentence').length} 本
+              </span>
             </div>
-            <div>
-              {books.filter(b => b.type === 'sentence').map((book) => {
+            <div className="space-y-4">
+              {books.filter(b => b.type === 'sentence').map((book, index) => {
                 const stats = getBookStats(book)
+                const vocabCount = books.filter(b => b.type === 'vocabulary').length
                 return (
-                  <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
-                    <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{book.name}</CardTitle>
-                        <CardDescription className="text-xs">
-                          {getBookDescription(book.subType || '')}
-                        </CardDescription>
+                  <Link
+                    key={book.id}
+                    href={`/books/${encodeURIComponent(book.id)}`}
+                    className="block"
+                  >
+                    <Card
+                      className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 bg-card/80"
+                      style={{
+                        animation: `fadeSlideIn 0.4s ease-out forwards`,
+                        animationDelay: `${(index + vocabCount) * 0.1}s`,
+                        opacity: 0
+                      }}
+                    >
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex items-start gap-3">
+                          {/* 序号徽章 */}
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base group-hover:text-primary transition-colors truncate">
+                                {book.name}
+                              </CardTitle>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 ml-2" />
+                            </div>
+                            <CardDescription className="text-xs mt-1">
+                              {getBookDescription(book.subType || '')}
+                            </CardDescription>
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex justify-between text-xs text-muted-foreground">
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex justify-between text-xs text-muted-foreground pl-11">
                           <span>{stats.chapterCount} 章</span>
                           <span>{stats.subChapterCount} 节</span>
                           <span>{stats.cardCount} 句</span>
@@ -169,32 +210,61 @@ export default async function HomePage() {
                   </Link>
                 )
               })}
+              {books.filter(b => b.type === 'sentence').length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">暂无句型书籍</p>
+              )}
             </div>
-            {books.filter(b => b.type === 'sentence').length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">暂无句型书籍</p>
-            )}
           </div>
 
           {/* 语料栏 */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b">
+            <div className="flex items-center gap-2 pb-3 border-b border-border">
               <MessageCircle className="h-5 w-5 text-primary" />
-              <h3 className="font-semibold">语料</h3>
+              <h3 className="font-semibold text-lg">语料</h3>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {books.filter(b => b.type === 'corpus').length} 本
+              </span>
             </div>
-            <div>
-              {books.filter(b => b.type === 'corpus').map((book) => {
+            <div className="space-y-4">
+              {books.filter(b => b.type === 'corpus').map((book, index) => {
                 const stats = getBookStats(book)
+                const vocabCount = books.filter(b => b.type === 'vocabulary').length
+                const sentenceCount = books.filter(b => b.type === 'sentence').length
                 return (
-                  <Link key={book.id} href={`/books/${encodeURIComponent(book.id)}`}>
-                    <Card className="book-card glass-card cursor-pointer hover:shadow-md transition-shadow mb-6">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{book.name}</CardTitle>
-                        <CardDescription className="text-xs">
-                          {getBookDescription(book.subType || '')}
-                        </CardDescription>
+                  <Link
+                    key={book.id}
+                    href={`/books/${encodeURIComponent(book.id)}`}
+                    className="block"
+                  >
+                    <Card
+                      className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-primary/30 bg-card/80"
+                      style={{
+                        animation: `fadeSlideIn 0.4s ease-out forwards`,
+                        animationDelay: `${(index + vocabCount + sentenceCount) * 0.1}s`,
+                        opacity: 0
+                      }}
+                    >
+                      <CardHeader className="p-4 pb-2">
+                        <div className="flex items-start gap-3">
+                          {/* 序号徽章 */}
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-sm font-semibold text-primary">{index + 1}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-base group-hover:text-primary transition-colors truncate">
+                                {book.name}
+                              </CardTitle>
+                              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0 ml-2" />
+                            </div>
+                            <CardDescription className="text-xs mt-1">
+                              {getBookDescription(book.subType || '')}
+                            </CardDescription>
+                          </div>
+                        </div>
                       </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex justify-between text-xs text-muted-foreground">
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex justify-between text-xs text-muted-foreground pl-11">
                           <span>{stats.chapterCount} 章</span>
                           <span>{stats.subChapterCount} 节</span>
                           <span>{stats.cardCount} 语料</span>
@@ -204,23 +274,22 @@ export default async function HomePage() {
                   </Link>
                 )
               })}
+              {books.filter(b => b.type === 'corpus').length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-8">暂无语料书籍</p>
+              )}
             </div>
-            {books.filter(b => b.type === 'corpus').length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">暂无语料书籍</p>
-            )}
           </div>
         </div>
-      </section>
 
-      {/* 底部装饰 */}
-      <footer className="mt-16 text-center text-sm text-muted-foreground">
-        <div className="greek-divider max-w-xs mx-auto mb-6" />
-        <p className="flex items-center justify-center gap-2">
-          <Sparkles className="h-4 w-4 text-amber-400" />
-          智慧源于探索 · 雅典英语伴你同行
-          <Sparkles className="h-4 w-4 text-amber-400" />
-        </p>
-      </footer>
+        {/* 底部 */}
+        <footer className="mt-12 text-center text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2">
+            <Sparkles className="w-3 h-3 text-primary/40" />
+            <span>智慧源于探索 · 雅典英语伴你同行</span>
+            <Sparkles className="w-3 h-3 text-primary/40" />
+          </div>
+        </footer>
+      </div>
     </div>
   )
 }

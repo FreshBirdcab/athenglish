@@ -46,12 +46,14 @@ interface StudyListProps {
   setActiveFillCardId: (id: string | null) => void
   fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+  fieldStyles?: Record<string, FieldStyle> | null
+  // 答题历史相关
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
-  fieldStyles?: Record<string, FieldStyle> | null
+  saveFillAnswerHistory: (cardId: string, correct: number, incorrect: number) => void
 }
 
-export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick, activeFillCardId, setActiveFillCardId, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory, fieldStyles }: StudyListProps) {
+export function StudyList({ cards, bookType, annotations, onTextSelect, onDeleteAnnotation, onHighlightClick, activeFillCardId, setActiveFillCardId, fillModeCards, setFillModeCards, fieldStyles, fillAnswerHistory, setFillAnswerHistory, saveFillAnswerHistory }: StudyListProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
@@ -80,29 +82,17 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
   // 用于跟踪当前激活的卡片ID
   const prevActiveCardRef = useRef<string | null>(null)
-
   // 用于跟踪本轮已计数的卡片，避免重复计数
   const countedCardsRef = useRef<Set<string>>(new Set())
   // 用于标记是否刚刚重置过
   const justResetRef = useRef(false)
 
-  // 切换卡片时清除之前卡片的答题状态
+  // 监听答题状态变化，更新历史记录并保存到服务器
   useEffect(() => {
-    const prevCardId = prevActiveCardRef.current
-    if (prevCardId && prevCardId !== activeFillCardId && fillModeCards[prevCardId]) {
-      // 清除之前卡片的 fillModeCards 状态
-      setFillModeCards(prev => {
-        const newState = { ...prev }
-        delete newState[prevCardId]
-        return newState
-      })
-    }
-    prevActiveCardRef.current = activeFillCardId
-  }, [activeFillCardId, fillModeCards])
+    if (!activeFillCardId || !cards.length) return
 
-  // 监听答题状态变化，更新历史记录
-  useEffect(() => {
-    if (!activeFillCardId) return
+    const currentCard = cards.find(c => c.id === activeFillCardId)
+    if (!currentCard) return
 
     const cardState = fillModeCards[activeFillCardId]
     if (!cardState) return
@@ -137,22 +127,33 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       // 每次所有挖空都回答完就累加计数
       setFillAnswerHistory(prev => {
         const history = prev[activeFillCardId] || { correct: 0, incorrect: 0 }
+        const newHistory = {
+          correct: history.correct + (allCorrect ? 1 : 0),
+          incorrect: history.incorrect + (allCorrect ? 0 : 1)
+        }
+        // 保存到服务器
+        saveFillAnswerHistory(activeFillCardId, newHistory.correct, newHistory.incorrect)
         return {
           ...prev,
-          [activeFillCardId]: {
-            correct: history.correct + (allCorrect ? 1 : 0),
-            incorrect: history.incorrect + (allCorrect ? 0 : 1)
-          }
+          [activeFillCardId]: newHistory
         }
       })
     }
-  }, [fillModeCards, activeFillCardId, annotations])
+  }, [fillModeCards, activeFillCardId, cards, annotations, setFillAnswerHistory, saveFillAnswerHistory])
 
-  // 切换卡片或退出/进入挖空模式时清除之前卡片的答题状态和计数标记
+  // 切换卡片时清除之前卡片的答题状态
   useEffect(() => {
-    // 清除计数标记
-    countedCardsRef.current.clear()
-  }, [activeFillCardId])
+    const prevCardId = prevActiveCardRef.current
+    if (prevCardId && prevCardId !== activeFillCardId && fillModeCards[prevCardId]) {
+      // 清除之前卡片的 fillModeCards 状态
+      setFillModeCards(prev => {
+        const newState = { ...prev }
+        delete newState[prevCardId]
+        return newState
+      })
+    }
+    prevActiveCardRef.current = activeFillCardId
+  }, [activeFillCardId, fillModeCards])
 
   // 键盘快捷键
   useEffect(() => {
@@ -283,7 +284,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [activeFillCardId, cards, annotations, fillModeCards, setFillModeCards, setFillAnswerHistory])
+  }, [activeFillCardId, cards, annotations, fillModeCards, setFillModeCards])
 
   const speak = (text: string) => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -443,8 +444,6 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
       delete newState[cardId]
       return newState
     })
-    // 清除该卡片的计数标记，允许重新计数
-    countedCardsRef.current.delete(cardId)
   }
 
   // 切换显示答案
@@ -619,29 +618,16 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onDelete
         return (
           <Card key={card.id} className="break-inside-avoid">
             <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-              {/* 左侧：序号 + 答题统计 */}
+              {/* 左侧：序号和答题历史 */}
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{index + 1}</Badge>
-                {/* 答题历史累计次数 - 常驻显示 */}
-                {(() => {
-                  const history = fillAnswerHistory[card.id] || { correct: 0, incorrect: 0 }
-                  const totalAnswered = history.correct + history.incorrect
-                  if (totalAnswered > 0) {
-                    return (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="flex items-center gap-0.5 text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                          <Check className="h-3 w-3" />
-                          {history.correct}
-                        </span>
-                        <span className="flex items-center gap-0.5 text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
-                          <X className="h-3 w-3" />
-                          {history.incorrect}
-                        </span>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
+                {/* 显示答题历史 */}
+                {fillAnswerHistory[card.id] && (
+                  <div className="flex items-center gap-1 text-xs">
+                    <span className="text-green-600 font-medium">✓{fillAnswerHistory[card.id].correct}</span>
+                    <span className="text-red-500 font-medium">✗{fillAnswerHistory[card.id].incorrect}</span>
+                  </div>
+                )}
               </div>
 
               {/* 右侧：操作按钮组 */}

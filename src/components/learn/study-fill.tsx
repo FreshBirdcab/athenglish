@@ -41,9 +41,11 @@ interface StudyFillProps {
   annotations: Record<string, Annotation[]>
   fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
   setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+  fieldStyles?: Record<string, FieldStyle> | null
+  // 答题历史相关
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
-  fieldStyles?: Record<string, FieldStyle> | null
+  saveFillAnswerHistory: (cardId: string, correct: number, incorrect: number) => void
 }
 
 interface FillState {
@@ -52,10 +54,14 @@ interface FillState {
   isCorrect: boolean | null
 }
 
-export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards, fillAnswerHistory, setFillAnswerHistory, fieldStyles }: StudyFillProps) {
+export function StudyFill({ cards, bookType, annotations, fillModeCards, setFillModeCards, fieldStyles, fillAnswerHistory, setFillAnswerHistory, saveFillAnswerHistory }: StudyFillProps) {
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const [showAnswers, setShowAnswers] = useState<Record<string, boolean>>({})
+  // 用于跟踪本轮已计数的卡片，避免重复计数
+  const countedCardsRef = useRef<Set<string>>(new Set())
+  // 用于标记是否刚刚重置过
+  const justResetRef = useRef(false)
 
   // 获取字段样式类名
   const getFieldStyleClass = (field: string): string => {
@@ -78,20 +84,16 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
     }
   }, [session])
 
-  // 用于跟踪本轮已计数的卡片，避免重复计数
-  const countedCardsRef = useRef<Set<string>>(new Set())
-  // 用于标记是否刚刚重置过
-  const justResetRef = useRef<string | null>(null)
-
-  // 监听答题状态变化，更新历史记录
+  // 监听答题状态变化，更新历史记录并保存到服务器
   useEffect(() => {
-    // 遍历所有卡片，检查是否有卡片完成答题
-    Object.keys(fillModeCards).forEach(cardId => {
-      const cardState = fillModeCards[cardId]
+    if (!cards.length) return
+
+    cards.forEach(card => {
+      const cardState = fillModeCards[card.id]
       if (!cardState) return
 
       // 获取该卡片的挖空数量
-      const cardAnnotations = annotations[cardId] || []
+      const cardAnnotations = annotations[card.id] || []
       const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
       const totalFills = highlightAnnotations.length
 
@@ -101,36 +103,39 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
 
       // 只有当所有挖空都回答了才更新历史
       if (answeredCount === totalFills) {
-        // 如果刚刚重置过这个卡片，清除标记和计数记录，允许重新计数
-        if (justResetRef.current === cardId) {
-          justResetRef.current = null
-          countedCardsRef.current.delete(cardId)
+        // 如果刚刚重置过，清除标记和计数记录，允许重新计数
+        if (justResetRef.current) {
+          justResetRef.current = false
+          countedCardsRef.current.delete(card.id)
         }
 
         // 检查是否已在本轮计数过
-        if (countedCardsRef.current.has(cardId)) {
+        if (countedCardsRef.current.has(card.id)) {
           return
         }
 
         const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
 
         // 标记该卡片已计数
-        countedCardsRef.current.add(cardId)
+        countedCardsRef.current.add(card.id)
 
         // 每次所有挖空都回答完就累加计数
         setFillAnswerHistory(prev => {
-          const history = prev[cardId] || { correct: 0, incorrect: 0 }
+          const history = prev[card.id] || { correct: 0, incorrect: 0 }
+          const newHistory = {
+            correct: history.correct + (allCorrect ? 1 : 0),
+            incorrect: history.incorrect + (allCorrect ? 0 : 1)
+          }
+          // 保存到服务器
+          saveFillAnswerHistory(card.id, newHistory.correct, newHistory.incorrect)
           return {
             ...prev,
-            [cardId]: {
-              correct: history.correct + (allCorrect ? 1 : 0),
-              incorrect: history.incorrect + (allCorrect ? 0 : 1)
-            }
+            [card.id]: newHistory
           }
         })
       }
     })
-  }, [fillModeCards, annotations])
+  }, [fillModeCards, cards, annotations, setFillAnswerHistory, saveFillAnswerHistory])
 
   const speak = (text: string) => {
     if (typeof window !== "undefined" && window.speechSynthesis) {
@@ -237,13 +242,71 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
             placeholder="?"
             value={userInput}
             onChange={(e) => {
-              setFillModeCards(prev => ({
-                ...prev,
-                [cardId]: {
-                  ...(prev[cardId] || {}),
-                  [index]: { input: e.target.value, checked: false, isCorrect: null }
+              const newValue = e.target.value
+              setFillModeCards(prev => {
+                const cardState = prev[cardId] || {}
+                const newCardState = {
+                  ...cardState,
+                  [index]: { input: newValue, checked: false, isCorrect: null }
                 }
-              }))
+
+                // 检查该卡片所有挖空是否都有输入，如果有则自动检查答案
+                const cardAnnotations = annotations[cardId] || []
+                const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+                const totalFills = highlightAnnotations.length
+
+                // 检查是否所有挖空都有输入
+                let allFilled = true
+                for (let i = 0; i < totalFills; i++) {
+                  const state = newCardState[i]
+                  if (!state || !state.input.trim()) {
+                    allFilled = false
+                    break
+                  }
+                }
+
+                // 如果所有挖空都有输入，自动检查答案
+                if (allFilled) {
+                  const card = cards.find(c => c.id === cardId)
+                  if (card) {
+                    const fields = ["primary", "secondary", "usageNote", "exampleEn", "exampleZh", "analysis"]
+                    const fieldAnnotations: { field: string; annotations: Annotation[] }[] = []
+                    fields.forEach(field => {
+                      const fieldAnns = cardAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
+                      if (fieldAnns.length > 0) {
+                        fieldAnnotations.push({ field, annotations: fieldAnns })
+                      }
+                    })
+
+                    fieldAnnotations.forEach(({ annotations: anns }) => {
+                      const sorted = [...anns].sort((a, b) => a.startOffset - b.startOffset)
+                      sorted.forEach((ann, idx) => {
+                        const fieldState = newCardState[idx]
+                        if (fieldState && fieldState.input.trim()) {
+                          let fieldText = ""
+                          if (ann.field === "primary") fieldText = card.contentPrimary
+                          else if (ann.field === "secondary") fieldText = card.contentSecondary || ""
+                          else if (ann.field === "usageNote") fieldText = card.usageNote || ""
+                          else if (ann.field === "exampleEn") fieldText = card.exampleEn || ""
+                          else if (ann.field === "exampleZh") fieldText = card.exampleZh || ""
+                          else if (ann.field === "analysis") fieldText = card.analysis || ""
+
+                          const correctAnswer = fieldText.slice(ann.startOffset, ann.endOffset).trim().toLowerCase()
+                          const userInput = fieldState.input.trim().toLowerCase()
+                          const isCorrect = userInput === correctAnswer
+
+                          newCardState[idx] = { ...fieldState, checked: true, isCorrect }
+                        }
+                      })
+                    })
+                  }
+                }
+
+                return {
+                  ...prev,
+                  [cardId]: newCardState
+                }
+              })
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -297,10 +360,73 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
     }))
   }
 
+  // 检查卡片所有答案
+  const checkAllAnswers = (cardId: string) => {
+    const card = cards.find(c => c.id === cardId)
+    if (!card) return
+
+    const cardAnnotations = annotations[cardId] || []
+    const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+    if (highlightAnnotations.length === 0) return
+
+    // 获取有高亮的字段
+    const fields = ["primary", "secondary", "usageNote", "exampleEn", "exampleZh", "analysis"]
+    const fieldAnnotations: { field: string; annotations: Annotation[] }[] = []
+    fields.forEach(field => {
+      const fieldAnns = cardAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
+      if (fieldAnns.length > 0) {
+        fieldAnnotations.push({ field, annotations: fieldAnns })
+      }
+    })
+
+    // 检查每个字段的答案
+    setFillModeCards(prev => {
+      const cardState = { ...(prev[cardId] || {}) }
+      let hasChanges = false
+
+      fieldAnnotations.forEach(({ field, annotations: anns }) => {
+        const sorted = [...anns].sort((a, b) => a.startOffset - b.startOffset)
+        let lastEnd = 0
+
+        sorted.forEach((ann, idx) => {
+          if (ann.startOffset >= lastEnd) {
+            const fieldState = cardState[idx]
+            if (fieldState && fieldState.input.trim()) {
+              let fieldText = ""
+              if (field === "primary") fieldText = card.contentPrimary
+              else if (field === "secondary") fieldText = card.contentSecondary || ""
+              else if (field === "usageNote") fieldText = card.usageNote || ""
+              else if (field === "exampleEn") fieldText = card.exampleEn || ""
+              else if (field === "exampleZh") fieldText = card.exampleZh || ""
+              else if (field === "analysis") fieldText = card.analysis || ""
+
+              const correctAnswer = fieldText.slice(ann.startOffset, ann.endOffset).trim().toLowerCase()
+              const userInput = fieldState.input.trim().toLowerCase()
+              const isCorrect = userInput === correctAnswer
+
+              if (!fieldState.checked || fieldState.isCorrect !== isCorrect) {
+                cardState[idx] = { ...fieldState, checked: true, isCorrect }
+                hasChanges = true
+              }
+              lastEnd = ann.endOffset
+            }
+          }
+        })
+      })
+
+      if (!hasChanges) return prev
+
+      return {
+        ...prev,
+        [cardId]: cardState
+      }
+    })
+  }
+
   // 重置卡片状态
   const resetCard = (cardId: string) => {
     // 标记刚刚重置过
-    justResetRef.current = cardId
+    justResetRef.current = true
     // 清空挖空内容
     setFillModeCards(prev => {
       const cardData = prev[cardId]
@@ -321,8 +447,6 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
       delete newState[cardId]
       return newState
     })
-    // 清除该卡片的计数标记，允许重新计数
-    countedCardsRef.current.delete(cardId)
   }
 
   // 检查卡片是否有答案
@@ -423,29 +547,16 @@ export function StudyFill({ cards, bookType, annotations, fillModeCards, setFill
         return (
           <Card key={card.id} className="break-inside-avoid">
             <CardHeader className="flex flex-row items-center justify-between py-3 px-4">
-              {/* 左侧：序号 + 答题统计 */}
+              {/* 左侧：序号和答题历史 */}
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs px-2 py-0.5 h-8">#{index + 1}</Badge>
-                {/* 答题历史累计次数 - 常驻显示 */}
-                {(() => {
-                  const history = fillAnswerHistory[card.id] || { correct: 0, incorrect: 0 }
-                  const totalAnswered = history.correct + history.incorrect
-                  if (totalAnswered > 0) {
-                    return (
-                      <div className="flex items-center gap-1 text-xs">
-                        <span className="flex items-center gap-0.5 text-green-600 bg-green-50 px-1.5 py-0.5 rounded">
-                          <Check className="h-3 w-3" />
-                          {history.correct}
-                        </span>
-                        <span className="flex items-center gap-0.5 text-red-600 bg-red-50 px-1.5 py-0.5 rounded">
-                          <X className="h-3 w-3" />
-                          {history.incorrect}
-                        </span>
-                      </div>
-                    )
-                  }
-                  return null
-                })()}
+                {/* 显示答题历史 */}
+                {fillAnswerHistory[card.id] && (
+                  <div className="flex items-center gap-1 text-xs">
+                    <span className="text-green-600 font-medium">✓{fillAnswerHistory[card.id].correct}</span>
+                    <span className="text-red-500 font-medium">✗{fillAnswerHistory[card.id].incorrect}</span>
+                  </div>
+                )}
               </div>
 
               {/* 右侧：操作按钮组 */}

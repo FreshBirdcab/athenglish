@@ -3,13 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Layout, List, PenLine } from "lucide-react"
+import { Layout, List } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { StudyClient } from "@/components/learn/study-client"
 import { StudyList } from "@/components/learn/study-list"
-import { StudyFill } from "@/components/learn/study-fill"
 
 interface Card {
   id: string
@@ -72,45 +71,8 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
   const [fillModeCards, setFillModeCards] = useState<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>({})
   // 当前正在使用卡片级挖空模式的卡片ID
   const [activeFillCardId, setActiveFillCardId] = useState<string | null>(null)
-  // 答题历史记录：每张卡片的累计答对/答错次数
+  // 填空答题历史记录
   const [fillAnswerHistory, setFillAnswerHistory] = useState<Record<string, { correct: number; incorrect: number }>>({})
-
-  // 从数据库加载答题历史
-  useEffect(() => {
-    if (session?.user) {
-      fetch("/api/fill-history")
-        .then(res => res.json())
-        .then(data => {
-          if (data.histories) {
-            setFillAnswerHistory(data.histories)
-          }
-        })
-        .catch(console.error)
-    }
-  }, [session])
-
-  // 保存答题历史到数据库（防抖）
-  useEffect(() => {
-    if (!session?.user) return
-    if (Object.keys(fillAnswerHistory).length === 0) return
-
-    const timeout = setTimeout(() => {
-      // 保存每张卡片的历史到数据库
-      Object.entries(fillAnswerHistory).forEach(([cardId, history]) => {
-        fetch("/api/fill-history", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cardId,
-            correctCount: history.correct,
-            incorrectCount: history.incorrect
-          })
-        }).catch(console.error)
-      })
-    }, 1000)
-
-    return () => clearTimeout(timeout)
-  }, [fillAnswerHistory, session])
 
   // 点击外部关闭菜单
   useEffect(() => {
@@ -148,6 +110,20 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
       }).catch(console.error)
     }
   }, [session, cards])
+
+  // 加载答题历史记录
+  useEffect(() => {
+    if (session?.user) {
+      fetch("/api/fill-history")
+        .then(res => res.json())
+        .then(data => {
+          if (data.histories) {
+            setFillAnswerHistory(data.histories)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [session])
 
   const toggleMode = (newMode: string) => {
     const params = new URLSearchParams(searchParams.toString())
@@ -340,6 +316,24 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
     setShowMenu(true)
   }, [session])
 
+  // 保存答题历史到服务器
+  const saveFillAnswerHistory = useCallback(async (cardId: string, correct: number, incorrect: number) => {
+    if (!session?.user) return
+    try {
+      await fetch("/api/fill-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cardId,
+          correctCount: correct,
+          incorrectCount: incorrect
+        })
+      })
+    } catch (error) {
+      console.error("保存答题历史失败:", error)
+    }
+  }, [session])
+
   return (
     <div>
       {/* 模式切换按钮 */}
@@ -359,14 +353,6 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
         >
           <List className="h-4 w-4 mr-1" />
           全部展示
-        </Button>
-        <Button
-          variant={mode === "fill" ? "default" : "outline"}
-          size="sm"
-          onClick={() => toggleMode("fill")}
-        >
-          <PenLine className="h-4 w-4 mr-1" />
-          挖空填空
         </Button>
       </div>
 
@@ -425,18 +411,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
       )}
 
       {/* 根据模式渲染不同组件 */}
-      {mode === "fill" ? (
-        <StudyFill
-          cards={cards}
-          bookType={bookType}
-          annotations={annotations}
-          fillModeCards={fillModeCards}
-          setFillModeCards={setFillModeCards}
-          fillAnswerHistory={fillAnswerHistory}
-          setFillAnswerHistory={setFillAnswerHistory}
-          fieldStyles={fieldStyles}
-        />
-      ) : mode === "list" ? (
+      {mode === "list" ? (
         <StudyList
           cards={cards}
           bookType={bookType}
@@ -452,9 +427,10 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
           setActiveFillCardId={setActiveFillCardId}
           fillModeCards={fillModeCards}
           setFillModeCards={setFillModeCards}
+          fieldStyles={fieldStyles}
           fillAnswerHistory={fillAnswerHistory}
           setFillAnswerHistory={setFillAnswerHistory}
-          fieldStyles={fieldStyles}
+          saveFillAnswerHistory={saveFillAnswerHistory}
         />
       ) : (
         <StudyClient
@@ -485,6 +461,7 @@ export function StudyModeWrapper({ cards, subChapterId, bookType, bookSubType, f
           setFillModeCards={setFillModeCards}
           fillAnswerHistory={fillAnswerHistory}
           setFillAnswerHistory={setFillAnswerHistory}
+          saveFillAnswerHistory={saveFillAnswerHistory}
         />
       )}
     </div>
