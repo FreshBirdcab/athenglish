@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit, Plus, BookOpen, Upload, FolderOpen } from "lucide-react"
+import { Trash2, Edit, Plus, BookOpen } from "lucide-react"
 import Link from "next/link"
 
 interface Book {
@@ -25,24 +25,15 @@ const BOOK_TYPE_LABELS: Record<string, string> = {
   corpus: '语料'
 }
 
-const AVAILABLE_BOOKS = [
-  '001口语词汇-全场景',
-  '001写作词汇-核心',
-  '001写作词汇-主题',
-  '001阅读词汇',
-  '002写作句型-功能类',
-  '003口语语料'
-]
-
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [importMode, setImportMode] = useState<'select' | 'upload'>('select')
-  const [selectedBookDir, setSelectedBookDir] = useState('')
   const [importing, setImporting] = useState(false)
   const [bookName, setBookName] = useState('')
   const [bookType, setBookType] = useState<'vocabulary' | 'sentence' | 'corpus'>('vocabulary')
+  const [columnCount, setColumnCount] = useState<number>(5)
+  const [columnNames, setColumnNames] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -84,36 +75,6 @@ export default function AdminBooksPage() {
     }
   }
 
-  const handleImport = async () => {
-    if (!selectedBookDir) {
-      alert("请选择要导入的书籍")
-      return
-    }
-
-    setImporting(true)
-    try {
-      const res = await fetch("/api/admin/books", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ bookDir: selectedBookDir })
-      })
-      const data = await res.json()
-
-      if (data.success) {
-        setShowAddModal(false)
-        setSelectedBookDir('')
-        fetchBooks()
-      } else {
-        alert(data.error || "导入失败")
-      }
-    } catch (error) {
-      console.error("导入书籍失败:", error)
-      alert("导入失败")
-    } finally {
-      setImporting(false)
-    }
-  }
-
   const handleFileUpload = async () => {
     if (!selectedFile) {
       alert("请选择要上传的文件")
@@ -131,6 +92,8 @@ export default function AdminBooksPage() {
       formData.append('file', selectedFile)
       formData.append('bookName', bookName)
       formData.append('bookType', bookType)
+      formData.append('columnCount', String(columnCount))
+      formData.append('columnNames', columnNames)
 
       const res = await fetch("/api/admin/books/upload", {
         method: "POST",
@@ -142,6 +105,8 @@ export default function AdminBooksPage() {
         setShowAddModal(false)
         setSelectedFile(null)
         setBookName('')
+        setColumnNames('')
+        setColumnCount(5)
         fetchBooks()
       } else {
         alert(data.error || "上传失败")
@@ -153,9 +118,6 @@ export default function AdminBooksPage() {
       setImporting(false)
     }
   }
-
-  // 获取所有书籍目录（包括已导入的，用于重新导入）
-  const availableBooks = AVAILABLE_BOOKS
 
   if (loading) {
     return (
@@ -233,7 +195,7 @@ export default function AdminBooksPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                  className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
                   onClick={() => handleDelete(book.id)}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -267,68 +229,6 @@ export default function AdminBooksPage() {
               <CardTitle>导入书籍</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* 导入方式选择 */}
-              <div className="flex gap-2 mb-4">
-                <Button
-                  variant={importMode === 'select' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setImportMode('select')}
-                >
-                  <FolderOpen className="h-4 w-4 mr-1" />
-                  选择目录
-                </Button>
-                <Button
-                  variant={importMode === 'upload' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setImportMode('upload')}
-                >
-                  <Upload className="h-4 w-4 mr-1" />
-                  上传文件
-                </Button>
-              </div>
-
-              {importMode === 'select' ? (
-                <>
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      选择书籍目录
-                    </label>
-                    <select
-                      value={selectedBookDir}
-                      onChange={(e) => setSelectedBookDir(e.target.value)}
-                      className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="">请选择...</option>
-                      {availableBooks.map(dir => {
-                        const isImported = books.some(b => b.id === dir)
-                        return (
-                          <option key={dir} value={dir}>
-                            {dir} {isImported ? '(已导入)' : ''}
-                          </option>
-                        )
-                      })}
-                    </select>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setShowAddModal(false)
-                        setSelectedBookDir('')
-                      }}
-                    >
-                      取消
-                    </Button>
-                    <Button
-                      onClick={handleImport}
-                      disabled={!selectedBookDir || importing}
-                    >
-                      {importing ? "导入中..." : "确认导入"}
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
                   <div>
                     <label className="text-sm font-medium mb-2 block">
                       书籍名称
@@ -347,13 +247,46 @@ export default function AdminBooksPage() {
                     </label>
                     <select
                       value={bookType}
-                      onChange={(e) => setBookType(e.target.value as any)}
+                      onChange={(e) => {
+                        setBookType(e.target.value as any)
+                        setColumnCount(e.target.value === 'corpus' ? 6 : 5)
+                      }}
                       className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       <option value="vocabulary">词汇</option>
                       <option value="sentence">句型</option>
                       <option value="corpus">语料</option>
                     </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      列数
+                    </label>
+                    <input
+                      type="number"
+                      value={columnCount}
+                      onChange={(e) => setColumnCount(Number(e.target.value))}
+                      min={1}
+                      max={10}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      自定义列名 (可选)
+                    </label>
+                    <input
+                      type="text"
+                      value={columnNames}
+                      onChange={(e) => setColumnNames(e.target.value)}
+                      placeholder={columnCount === 5
+                        ? "如: 单词,释义,用法,例句,翻译"
+                        : "如: 问题,正式,正式ZH,口语,口语ZH,分析"}
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      多个列名用逗号分隔，仅供管理员识别
+                    </p>
                   </div>
                   <div>
                     <label className="text-sm font-medium mb-2 block">
@@ -366,9 +299,6 @@ export default function AdminBooksPage() {
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                       className="w-full h-10 px-3 rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      ZIP压缩包需包含Excel文件，格式要求：词汇/句型5列，语料6列
-                    </p>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button
@@ -377,6 +307,8 @@ export default function AdminBooksPage() {
                         setShowAddModal(false)
                         setSelectedFile(null)
                         setBookName('')
+                        setColumnNames('')
+                        setColumnCount(5)
                       }}
                     >
                       取消
@@ -388,8 +320,6 @@ export default function AdminBooksPage() {
                       {importing ? "上传中..." : "确认上传"}
                     </Button>
                   </div>
-                </>
-              )}
             </CardContent>
           </Card>
         </div>

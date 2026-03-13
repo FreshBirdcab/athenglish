@@ -64,13 +64,23 @@ const COLOR_OPTIONS = [
   { value: 'text-yellow-500', label: '黄色' },
 ]
 
-const FIELD_LABELS: Record<string, string> = {
-  primary: '主要字段（单词/句型/问题）',
-  secondary: '次要字段（释义/中文）',
+const DEFAULT_FIELD_LABELS: Record<string, string> = {
+  primary: '主要字段',
+  secondary: '次要字段',
   usageNote: '用法说明',
   exampleEn: '英文例句',
   exampleZh: '中文例句',
-  analysis: '分析（语料）'
+  analysis: '分析'
+}
+
+// 列名索引映射
+const FIELD_TO_INDEX: Record<string, number> = {
+  primary: 0,
+  secondary: 1,
+  usageNote: 2,
+  exampleEn: 3,
+  exampleZh: 4,
+  analysis: 5
 }
 
 export default function BookEditPage() {
@@ -80,6 +90,8 @@ export default function BookEditPage() {
 
   const [book, setBook] = useState<Book | null>(null)
   const [styles, setStyles] = useState<BookStyles | null>(null)
+  const [columnNames, setColumnNames] = useState<string[]>([])
+  const [columnNamesInput, setColumnNamesInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [bookName, setBookName] = useState('')
@@ -108,6 +120,11 @@ export default function BookEditPage() {
       if (stylesData.styles) {
         setStyles(stylesData.styles)
       }
+
+      if (stylesData.columnNames) {
+        setColumnNames(stylesData.columnNames)
+        setColumnNamesInput(stylesData.columnNames.join(', '))
+      }
     } catch (error) {
       console.error("获取书籍数据失败:", error)
     } finally {
@@ -118,12 +135,15 @@ export default function BookEditPage() {
   const handleSaveStyles = async () => {
     if (!styles) return
 
+    // 解析列名
+    const parsedColumnNames = columnNamesInput.split(',').map(s => s.trim()).filter(s => s)
+
     setSaving(true)
     try {
       const res = await fetch(`/api/admin/books/${bookId}/styles`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fieldStyles: styles })
+        body: JSON.stringify({ fieldStyles: styles, columnNames: parsedColumnNames })
       })
 
       const data = await res.json()
@@ -214,6 +234,20 @@ export default function BookEditPage() {
     return allFields
   }
 
+  // 获取字段显示标签
+  const getFieldLabel = (field: string) => {
+    const index = FIELD_TO_INDEX[field]
+    // 优先使用输入框的值（实时更新），其次使用保存的值
+    const parsedInput = columnNamesInput.split(',').map(s => s.trim()).filter(s => s)
+    if (parsedInput[index]) {
+      return parsedInput[index]
+    }
+    if (columnNames && columnNames[index]) {
+      return columnNames[index]
+    }
+    return DEFAULT_FIELD_LABELS[field] || field
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -294,19 +328,43 @@ export default function BookEditPage() {
 
       {/* 字段样式设置 */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>字段样式设置</CardTitle>
-          <Button variant="outline" size="sm" onClick={resetToDefault}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            恢复默认
-          </Button>
+        <CardHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <CardTitle>字段样式设置</CardTitle>
+              <Button variant="outline" size="sm" onClick={resetToDefault}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                恢复默认
+              </Button>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Input
+                  value={columnNamesInput}
+                  onChange={(e) => setColumnNamesInput(e.target.value)}
+                  placeholder={book?.type === 'corpus'
+                    ? "自定义列名(可选): 问题, 正式, 正式中文, 口语, 口语中文, 分析"
+                    : "自定义列名(可选): 单词, 释义, 用法, 例句, 翻译"}
+                />
+              </div>
+              {columnNamesInput && (
+                <div className="flex flex-wrap gap-1">
+                  {columnNamesInput.split(',').map((name, index) => name.trim() && (
+                    <Badge key={index} variant="outline" className="text-xs">
+                      {index + 1}:{name.trim()}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
             {getAvailableFields().map(field => (
               <div key={field} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
-                  <label className="font-medium">{FIELD_LABELS[field]}</label>
+                  <label className="font-medium">{getFieldLabel(field)}</label>
                   <div className="flex items-center gap-2">
                     <label className="flex items-center gap-1 text-sm">
                       <input
@@ -392,7 +450,7 @@ export default function BookEditPage() {
           <div className="flex justify-end mt-6">
             <Button onClick={handleSaveStyles} disabled={saving}>
               <Save className="h-4 w-4 mr-2" />
-              保存样式设置
+              保存样式和列名
             </Button>
           </div>
         </CardContent>

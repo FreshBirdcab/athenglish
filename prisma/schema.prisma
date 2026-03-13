@@ -111,6 +111,7 @@ model UserProgress {
   status        String   @default("new") // new, learning, mastered
   learnedAt     DateTime @default(now())
   lastReviewedAt DateTime?
+  learningTime  Int      @default(0) // 学习时长（秒）
 
   // 关系
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -260,6 +261,9 @@ model BookStyleSettings {
   // 字段样式 (JSON 格式存储)
   // 格式: { primary: {fontSize, fontWeight, color, bold, italic}, secondary: {...}, ... }
   fieldStyles String   // JSON string
+  // 自定义列名 (JSON 格式存储)，仅用于管理员识别
+  // 格式: ["单词", "释义", "用法", "例句", "翻译"] 或 ["问题", "正式", "正式ZH", "口语", "口语ZH", "分析"]
+  columnNames String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)

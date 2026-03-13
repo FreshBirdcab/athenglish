@@ -10,7 +10,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "未登录" }, { status: 401 })
     }
 
-    const { cardId, status } = await request.json()
+    const { cardId, status, learningTime } = await request.json()
+
+    if (!cardId) {
+      return NextResponse.json({ error: "缺少卡片ID" }, { status: 400 })
+    }
+
+    const userId = (session.user as any).id
+    if (!userId) {
+      return NextResponse.json({ error: "缺少用户ID" }, { status: 400 })
+    }
+
+    // 确保 status 有默认值
+    const progressStatus = status || "learning"
 
     // 更新或创建学习进度
     const progress = await prisma.userProgress.upsert({
@@ -21,13 +33,15 @@ export async function POST(request: Request) {
         },
       },
       update: {
-        status,
+        status: progressStatus,
         lastReviewedAt: new Date(),
+        learningTime: learningTime ? { increment: learningTime } : undefined,
       },
       create: {
         userId: (session.user as any).id,
         cardId,
-        status,
+        status: progressStatus,
+        learningTime: learningTime || 0,
       },
     })
 
@@ -84,21 +98,46 @@ export async function GET() {
     // 获取学习统计数据
     const userId = (session.user as any).id
 
-    const [totalCards, learnedCards, streak] = await Promise.all([
+    const [totalCards, userProgress, streak, recentProgress] = await Promise.all([
       prisma.card.count(),
-      prisma.userProgress.count({
-        where: { userId, status: { in: ["learning", "mastered"] } },
-      }),
-      prisma.streak.findUnique({
-        where: { userId },
-      }),
+      prisma.userProgress.findMany({ where: { userId } }),
+      prisma.streak.findUnique({ where: { userId } }),
+      prisma.userProgress.findMany({
+        where: {
+          userId,
+          learnedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+        }
+      })
     ])
+
+    // 标记过的卡片即视为已学习（状态非 new）
+    const learnedCards = userProgress.filter(p => p.status !== "new").length
+
+    // 统计每天的学习数量
+    const dailyStats = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - (6 - i))
+      date.setHours(0, 0, 0, 0)
+      const nextDate = new Date(date)
+      nextDate.setDate(nextDate.getDate() + 1)
+
+      const count = recentProgress.filter(p => {
+        const pDate = new Date(p.learnedAt)
+        return pDate >= date && pDate < nextDate
+      }).length
+
+      return {
+        date: date.toLocaleDateString("zh-CN", { weekday: "short" }),
+        count
+      }
+    })
 
     return NextResponse.json({
       totalCards,
       learnedCards,
-      streak: streak?.currentStreak || 0,
+      currentStreak: streak?.currentStreak || 0,
       longestStreak: streak?.longestStreak || 0,
+      dailyStats
     })
   } catch (error) {
     console.error("获取进度错误:", error)

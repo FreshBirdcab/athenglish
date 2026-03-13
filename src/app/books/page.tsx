@@ -2,8 +2,12 @@ import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { prisma } from "@/lib/prisma"
 import { BookOpen, MessageCircle, PenTool, Layers, ChevronRight } from "lucide-react"
+import { revalidatePath } from "next/cache"
 
 async function getBooks() {
+  // 每次获取时重新验证，确保获取最新数据
+  revalidatePath('/books')
+
   const books = await prisma.book.findMany({
     include: {
       chapters: {
@@ -36,7 +40,7 @@ function getBookDescription(subType: string) {
     case 'spoken':
       return '日常生活场景词汇，口语表达实用库'
     case 'writing_core':
-      return '雅思写作核心词汇，数据描述与逻辑连接'
+      return '写作核心词汇，数据描述与逻辑连接'
     case 'writing_topic':
       return '写作常考主题词汇，教育科技环境社会'
     case 'reading':
@@ -79,23 +83,23 @@ export default async function BooksPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部区域 */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary via-primary/90 to-accent py-12">
+      <div className="relative overflow-hidden hero-gradient py-12">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
           <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
         </div>
-        <div className="relative container mx-auto px-4">
+        <div className="relative content-container">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors text-sm font-medium"
+            className="inline-flex items-center gap-2 hero-text-muted hover:hero-text mb-4 transition-colors text-sm font-medium"
           >
             <ChevronRight className="w-4 h-4 -rotate-90" />
             返回首页
           </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">
+          <h1 className="text-3xl md:text-4xl font-bold hero-text mb-3 tracking-tight">
             全部书籍
           </h1>
-          <div className="flex items-center gap-4 text-white/70 text-sm">
+          <div className="flex items-center gap-4 hero-text-muted text-sm">
             <span>{totalBooks} 本书籍</span>
             <span>{totalChapters} 个章节</span>
             <span>{totalSubChapters} 个小节</span>
@@ -105,7 +109,7 @@ export default async function BooksPage() {
       </div>
 
       {/* 书籍列表 */}
-      <div className="container mx-auto px-4 py-8 -mt-3">
+      <div className="content-container py-8 -mt-3">
         {/* 词汇栏 */}
         <div className="space-y-4 mb-8">
           <div className="flex items-center gap-2 pb-3 border-b border-border">
@@ -137,7 +141,7 @@ export default async function BooksPage() {
                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
                       </div>
                       <CardDescription className="text-xs mt-2">
-                        {getBookDescription(book.subType || '')}
+                        {book.description || getBookDescription(book.subType || '')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
@@ -189,7 +193,7 @@ export default async function BooksPage() {
                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
                       </div>
                       <CardDescription className="text-xs mt-2">
-                        {getBookDescription(book.subType || '')}
+                        {book.description || getBookDescription(book.subType || '')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
@@ -242,7 +246,7 @@ export default async function BooksPage() {
                         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0" />
                       </div>
                       <CardDescription className="text-xs mt-2">
-                        {getBookDescription(book.subType || '')}
+                        {book.description || getBookDescription(book.subType || '')}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">

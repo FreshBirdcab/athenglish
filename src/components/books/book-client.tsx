@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
+import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ChevronDown, BookOpen, Sparkles, Target, Zap } from "lucide-react"
@@ -23,6 +24,7 @@ interface Chapter {
 interface BookData {
   id: string
   name: string
+  description: string | null
   chapters: Chapter[]
 }
 
@@ -120,9 +122,44 @@ function CircularProgress({ progress, size = 48, strokeWidth = 4 }: { progress: 
 }
 
 export function BookClient({ book }: { book: BookData }) {
+  const searchParams = useSearchParams()
+  const fromSubChapterId = searchParams.get("from")
   const [openChapters, setOpenChapters] = useState<Set<string>>(new Set())
   const [progressMap, setProgressMap] = useState<Record<string, SubChapterProgress>>({})
   const [mounted, setMounted] = useState(false)
+  // 记录从学习页返回的状态，用于跳过动画
+  const [isReturningFromStudy, setIsReturningFromStudy] = useState(false)
+  const chapterRefs = useRef<Record<string, HTMLDivElement>>({})
+
+  // 当从学习页返回时，自动展开对应的章节并滚动到位置
+  useEffect(() => {
+    if (fromSubChapterId && mounted && book.chapters?.length > 0) {
+      // 标记为从学习页返回，跳过动画
+      setIsReturningFromStudy(true)
+
+      // 找到对应的章节
+      const targetChapter = book.chapters.find(chapter =>
+        chapter.subChapters.some(sc => sc.id === fromSubChapterId)
+      )
+
+      if (targetChapter) {
+        // 使用函数式更新确保状态正确更新
+        setOpenChapters(prev => {
+          const newSet = new Set(prev)
+          newSet.add(targetChapter.id)
+          return newSet
+        })
+
+        // 滚动到对应章节
+        setTimeout(() => {
+          const chapterEl = chapterRefs.current[targetChapter.id]
+          if (chapterEl) {
+            chapterEl.scrollIntoView({ behavior: "smooth", block: "start" })
+          }
+        }, 200)
+      }
+    }
+  }, [fromSubChapterId, mounted, book.chapters])
 
   useEffect(() => {
     setMounted(true)
@@ -156,29 +193,32 @@ export function BookClient({ book }: { book: BookData }) {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部区域 - 使用主色渐变 */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-primary via-primary/90 to-accent py-12">
+      <div className="relative overflow-hidden hero-gradient py-12">
         {/* 装饰性模糊光晕 - 更低调 */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
           <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
         </div>
-        <div className="relative container mx-auto px-4">
+        <div className="relative content-container">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors text-sm font-medium"
+            className="inline-flex items-center gap-2 hero-link mb-4 transition-colors text-sm font-medium opacity-80 hover:opacity-100"
           >
             <ChevronDown className="w-4 h-4 rotate-90" />
             返回首页
           </Link>
           <div className="flex items-start gap-4">
             <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/20">
-              <BookOpen className="w-7 h-7 text-white" />
+              <BookOpen className="w-7 h-7 hero-text" />
             </div>
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-bold hero-text mb-2 tracking-tight">
                 {book.name}
               </h1>
-              <div className="flex items-center gap-4 text-white/70 text-sm">
+              {book.description && (
+                <p className="hero-text-muted text-sm mb-3">{book.description}</p>
+              )}
+              <div className="flex items-center gap-4 hero-text-muted text-sm">
                 <span className="flex items-center gap-1.5">
                   <Target className="w-4 h-4" />
                   {book.chapters.length} 个章节
@@ -197,7 +237,7 @@ export function BookClient({ book }: { book: BookData }) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 -mt-3">
+      <div className="content-container py-6 -mt-3">
         <div className="space-y-3">
           {book.chapters.map((chapter, chapterIndex) => {
             const isOpen = openChapters.has(chapter.id)
@@ -218,11 +258,15 @@ export function BookClient({ book }: { book: BookData }) {
             return (
               <div
                 key={chapter.id}
+                ref={(el) => { if (el) chapterRefs.current[chapter.id] = el }}
+                id={`chapter-${chapter.id}`}
                 className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
                 style={{
-                  animation: 'fadeSlideIn 0.4s ease-out forwards',
-                  animationDelay: `${chapterIndex * 0.08}s`,
-                  opacity: 0
+                  // 从学习页返回时跳过动画，直接显示
+                  animation: isReturningFromStudy ? 'none' : 'fadeSlideIn 0.4s ease-out forwards',
+                  // 限制最大延迟为1.5秒，避免章节过多时等待过长
+                  animationDelay: isReturningFromStudy ? '0s' : `${Math.min(chapterIndex, 18) * 0.08}s`,
+                  opacity: isReturningFromStudy ? 1 : 0
                 }}
               >
                 <button
@@ -283,7 +327,8 @@ export function BookClient({ book }: { book: BookData }) {
                             className="group"
                             style={{
                               animation: isOpen ? `fadeSlideUp 0.3s ease-out forwards` : 'none',
-                              animationDelay: `${subIndex * 0.04}s`,
+                              // 限制最大延迟为0.8秒
+                              animationDelay: `${Math.min(subIndex, 20) * 0.04}s`,
                               opacity: 0
                             }}
                           >

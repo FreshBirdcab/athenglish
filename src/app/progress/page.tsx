@@ -1,127 +1,239 @@
-import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
-import { authOptions } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+"use client"
+
+import { useState, useEffect } from "react"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Flame, Target, BookOpen } from "lucide-react"
+import { Flame, BookOpen, Target, TrendingUp } from "lucide-react"
 
-export default async function ProgressPage() {
-  const session = await getServerSession(authOptions)
+export default function ProgressPage() {
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+  const [stats, setStats] = useState<{
+    totalCards: number
+    learnedCards: number
+    currentStreak: number
+    longestStreak: number
+    dailyStats: { date: string; count: number }[]
+  } | null>(null)
 
-  if (!session) {
-    redirect("/login")
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
+    }
+  }, [status, router])
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      setMounted(true)
+      fetchData()
+    }
+  }, [status, session, router])
+
+  const fetchData = async () => {
+    if (!session?.user) return
+
+    try {
+      const res = await fetch("/api/progress")
+      if (!res.ok) return
+
+      const data = await res.json()
+
+      setStats({
+        totalCards: data.totalCards ?? 0,
+        learnedCards: data.learnedCards ?? 0,
+        currentStreak: data.currentStreak ?? 0,
+        longestStreak: data.longestStreak ?? 0,
+        dailyStats: data.dailyStats ?? []
+      })
+    } catch (error) {
+      // 静默处理错误
+    }
   }
 
-  const userId = (session.user as any).id
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="relative overflow-hidden hero-gradient py-12">
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
+            <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+          </div>
+          <div className="relative content-container">
+            <h1 className="text-3xl md:text-4xl font-bold hero-text mb-2 tracking-tight">
+              学习统计
+            </h1>
+            <p className="hero-text/70 text-sm">记录你的学习痕迹</p>
+          </div>
+        </div>
+        <div className="content-container py-8 -mt-3">
+          <div className="animate-pulse space-y-8">
+            <div className="grid gap-4 md:grid-cols-3">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-32 bg-muted rounded-xl" />
+              ))}
+            </div>
+            <div className="h-64 bg-muted rounded-xl" />
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-  // 获取统计数据
-  const [totalCards, userProgress, streak] = await Promise.all([
-    prisma.card.count(),
-    prisma.userProgress.findMany({
-      where: { userId },
-    }),
-    prisma.streak.findUnique({
-      where: { userId },
-    }),
-  ])
+  const displayStats = stats || {
+    totalCards: 0,
+    learnedCards: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    dailyStats: Array.from({ length: 7 }, (_, i) => {
+      const date = new Date()
+      date.setDate(date.getDate() - (6 - i))
+      return { date: date.toLocaleDateString("zh-CN", { weekday: "short" }), count: 0 }
+    })
+  }
 
-  const learnedCards = userProgress.filter(p => p.status !== "new").length
-  const masteredCards = userProgress.filter(p => p.status === "mastered").length
-
+  const { totalCards, learnedCards, currentStreak, longestStreak, dailyStats } = displayStats
   const progressPercent = totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0
+  const maxCount = Math.max(...dailyStats.map(d => d.count), 1)
 
-  // 获取最近7天的学习记录
-  const recentProgress = await prisma.userProgress.findMany({
-    where: {
-      userId,
-      learnedAt: {
-        gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      },
-    },
-    orderBy: { learnedAt: "desc" },
-  })
-
-  // 统计每天的学习数量
-  const dailyStats = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date()
-    date.setDate(date.getDate() - (6 - i))
-    date.setHours(0, 0, 0, 0)
-    const nextDate = new Date(date)
-    nextDate.setDate(nextDate.getDate() + 1)
-
-    const count = recentProgress.filter(p => {
-      const pDate = new Date(p.learnedAt)
-      return pDate >= date && pDate < nextDate
-    }).length
-
-    return {
-      date: date.toLocaleDateString("zh-CN", { weekday: "short" }),
-      count,
-    }
-  })
+  // 计算今日学习数量
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const todayCount = dailyStats.find(d => {
+    const dateStr = new Date().toLocaleDateString("zh-CN", { weekday: "short" })
+    return d.date === dateStr
+  })?.count || 0
 
   return (
-    <div className="content-container py-8">
-      <h1 className="text-3xl font-bold mb-8">学习进度</h1>
+    <div className="min-h-screen bg-background">
+      {/* 顶部区域 */}
+      <div className="relative overflow-hidden hero-gradient py-12">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
+          <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+        </div>
+        <div className="relative content-container">
+          <h1 className="text-3xl md:text-4xl font-bold hero-text mb-2 tracking-tight">
+            学习统计
+          </h1>
+          <p className="hero-text/70 text-sm">记录你的学习痕迹</p>
+        </div>
+      </div>
 
-      {/* 统计卡片 */}
-      <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">连续学习</CardTitle>
-            <Flame className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{streak?.currentStreak || 0} 天</div>
-            <p className="text-xs text-muted-foreground">最长 {streak?.longestStreak || 0} 天</p>
+      <div className="content-container py-8 -mt-3">
+        {/* 统计卡片 - 3列布局 */}
+        <div className="grid gap-4 md:grid-cols-3 mb-8">
+          {/* 连续学习 */}
+          <Card
+            className="overflow-hidden"
+            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0.1s', opacity: 0 }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">连续学习</p>
+                  <div className="text-3xl font-bold">{currentStreak} <span className="text-base font-normal">天</span></div>
+                  <p className="text-xs text-muted-foreground mt-1">最长 {longestStreak} 天</p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center">
+                  <Flame className="w-7 h-7 text-orange-500" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 今日学习 */}
+          <Card
+            className="overflow-hidden"
+            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0.2s', opacity: 0 }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">今日学习</p>
+                  <div className="text-3xl font-bold">{todayCount} <span className="text-base font-normal">张</span></div>
+                  <p className="text-xs text-muted-foreground mt-1">今日已标记</p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
+                  <BookOpen className="w-7 h-7 text-green-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 累计已学 */}
+          <Card
+            className="overflow-hidden"
+            style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0.3s', opacity: 0 }}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">累计已学</p>
+                  <div className="text-3xl font-bold">{learnedCards} <span className="text-base font-normal">/ {totalCards}</span></div>
+                  <p className="text-xs text-muted-foreground mt-1">总卡片数</p>
+                </div>
+                <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
+                  <Target className="w-7 h-7 text-blue-600" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* 学习进度条 */}
+        <Card
+          className="overflow-hidden mb-8"
+          style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0.4s', opacity: 0 }}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">总体学习进度</span>
+              <span className="text-sm font-medium">{progressPercent}%</span>
+            </div>
+            <Progress value={progressPercent} className="h-3" />
+            <p className="text-xs text-muted-foreground mt-2">
+              已标记 {learnedCards} 张，共 {totalCards} 张卡片
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">已学习</CardTitle>
-            <BookOpen className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{learnedCards} / {totalCards}</div>
-            <p className="text-xs text-muted-foreground">掌握 {masteredCards} 张</p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">学习进度</CardTitle>
-            <Target className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{progressPercent}%</div>
-            <Progress value={progressPercent} className="mt-2 h-2" />
+        {/* 最近7天学习情况 */}
+        <Card
+          className="overflow-hidden"
+          style={{ animation: 'fadeSlideIn 0.4s ease-out forwards', animationDelay: '0.5s', opacity: 0 }}
+        >
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold">最近7天学习</h2>
+            </div>
+            <div className="flex justify-between items-end h-40 gap-2">
+              {dailyStats.map((day, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full flex flex-col items-center justify-end h-28">
+                    <span className="text-xs font-medium text-primary mb-1">{day.count > 0 ? day.count : ''}</span>
+                    <div
+                      className="w-full max-w-[40px] bg-primary/80 rounded-t-md"
+                      style={{
+                        height: mounted ? `${Math.max(8, (day.count / maxCount) * 100)}%` : '0%',
+                        minHeight: '2px',
+                        transition: 'height 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transitionDelay: `${0.3 + i * 0.1}s`
+                      }}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <span className="text-xs text-muted-foreground">{day.date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* 最近7天学习情况 */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>最近7天学习</CardTitle>
-          <CardDescription>每日学习卡片数量</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-between items-end h-32 gap-2">
-            {dailyStats.map((day, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                <div
-                  className="w-full bg-primary rounded-t"
-                  style={{ height: `${Math.max(4, day.count * 4)}px` }}
-                />
-                <span className="text-xs text-muted-foreground">{day.date}</span>
-                <span className="text-xs font-medium">{day.count}</span>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

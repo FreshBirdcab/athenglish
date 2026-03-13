@@ -36,7 +36,17 @@ export async function GET(
       styles = JSON.stringify(defaultStyles)
     }
 
-    return NextResponse.json({ styles: JSON.parse(styles!) })
+    // 获取列名
+    let columnNames: string[] | null = null
+    if (book.styleSettings?.columnNames) {
+      try {
+        columnNames = JSON.parse(book.styleSettings.columnNames)
+      } catch (e) {
+        columnNames = null
+      }
+    }
+
+    return NextResponse.json({ styles: JSON.parse(styles!), columnNames })
   } catch (error) {
     console.error("获取样式错误:", error)
     return NextResponse.json({ error: "获取失败" }, { status: 500 })
@@ -54,7 +64,7 @@ export async function PUT(
       return NextResponse.json({ error: "无权限" }, { status: 403 })
     }
 
-    const { fieldStyles } = await request.json()
+    const { fieldStyles, columnNames } = await request.json()
 
     if (!fieldStyles) {
       return NextResponse.json({ error: "样式不能为空" }, { status: 400 })
@@ -69,14 +79,22 @@ export async function PUT(
     }
 
     // 更新或创建样式设置
+    // 解析列名
+    let parsedColumnNames: string[] | null = null
+    if (columnNames && Array.isArray(columnNames)) {
+      parsedColumnNames = columnNames.filter((s: string) => s && s.trim())
+    }
+
     const settings = await prisma.bookStyleSettings.upsert({
       where: { bookId: params.id },
       update: {
-        fieldStyles: JSON.stringify(fieldStyles)
+        fieldStyles: JSON.stringify(fieldStyles),
+        columnNames: parsedColumnNames ? JSON.stringify(parsedColumnNames) : null
       },
       create: {
         bookId: params.id,
-        fieldStyles: JSON.stringify(fieldStyles)
+        fieldStyles: JSON.stringify(fieldStyles),
+        columnNames: parsedColumnNames ? JSON.stringify(parsedColumnNames) : null
       }
     })
 

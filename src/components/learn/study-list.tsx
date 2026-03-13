@@ -173,12 +173,24 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
   // 渲染带批注的文本（包括有高亮或有备注的批注）
   const renderHighlightedText = (text: string, cardId: string, field: string) => {
     if (!text) return null
+
+    // 辅助函数：处理文本片段中的换行
+    const processNewlines = (content: string): React.ReactNode => {
+      if (!content.includes('\n')) return content
+      return content.split('\n').map((line, i, arr) => (
+        <span key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </span>
+      ))
+    }
+
     const cardAnnotations = annotations[cardId] || []
     // 过滤当前字段的批注（包括有高亮或有备注的）
     const validAnnotations = cardAnnotations.filter((a: Annotation) => a.field === field && (a.highlight || a.note))
 
     if (validAnnotations.length === 0) {
-      return <span>{text}</span>
+      return processNewlines(text)
     }
 
     const parts: React.JSX.Element[] = []
@@ -188,21 +200,24 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
       if (ann.startOffset < lastEnd) return
 
       if (ann.startOffset > lastEnd) {
-        parts.push(<span key={`text-${field}-${index}`}>{text.slice(lastEnd, ann.startOffset)}</span>)
+        parts.push(<span key={`text-${field}-${index}`}>{processNewlines(text.slice(lastEnd, ann.startOffset))}</span>)
       }
 
       const highlightedText = text.slice(ann.startOffset, ann.endOffset)
       parts.push(
         <span
           key={`highlight-${field}-${index}`}
-          className={`relative group px-0.5 rounded cursor-pointer ${ann.note ? "border-b-2 border-dashed border-amber-500" : ""}`}
-          style={{ backgroundColor: ann.highlight || (ann.note ? "transparent" : undefined) }}
+          className={`relative group px-0.5 -mx-0.5 rounded cursor-pointer highlighted-text ${ann.note ? "border-b-2 border-dashed border-amber-500" : ""}`}
+          style={{
+            backgroundColor: ann.highlight && ann.highlight !== "underline" ? ann.highlight : (ann.note ? "transparent" : undefined),
+            textDecoration: ann.highlight === "underline" ? "underline" : undefined
+          }}
           onClick={(e) => {
             e.stopPropagation()
             onHighlightClick(cardId, ann, e)
           }}
         >
-          {highlightedText}
+          {processNewlines(highlightedText)}
           {ann.note && (
             <span className="absolute -top-6 left-0 text-xs bg-amber-100 text-amber-800 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
               {ann.note}
@@ -214,7 +229,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
     })
 
     if (lastEnd < text.length) {
-      parts.push(<span key={`text-end-${field}`}>{text.slice(lastEnd)}</span>)
+      parts.push(<span key={`text-end-${field}`}>{processNewlines(text.slice(lastEnd))}</span>)
     }
 
     return parts
@@ -249,16 +264,6 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                     className={`h-4 w-4 ${isFavorited ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
                   />
                 </Button>
-                {/* 朗读按钮 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => speak(card.contentPrimary)}
-                  className="h-8 w-8 p-0"
-                  title="朗读"
-                >
-                  <Volume2 className="h-4 w-4 text-muted-foreground" />
-                </Button>
               </div>
             </CardHeader>
             <CardContent className="py-2" ref={el => { if (el) contentRefs.current[card.id] = el }}>
@@ -275,7 +280,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                   {card.contentSecondary && (
                     <div data-field="secondary" onMouseUp={() => handleTextSelect(card.id, "secondary", card.contentSecondary || "")}>
                       <p className={getFieldStyleClass("secondary") || "text-xl text-muted-foreground"}>
-                        {card.contentSecondary}
+                        {renderHighlightedText(card.contentSecondary, card.id, "secondary")}
                       </p>
                     </div>
                   )}
@@ -299,7 +304,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                   {card.exampleZh && (
                     <div data-field="exampleZh" onMouseUp={() => handleTextSelect(card.id, "exampleZh", card.exampleZh || "")}>
                       <p className={getFieldStyleClass("exampleZh") || "text-sm text-muted-foreground"}>
-                        {card.exampleZh}
+                        {renderHighlightedText(card.exampleZh, card.id, "exampleZh")}
                       </p>
                     </div>
                   )}
@@ -319,7 +324,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                   {card.contentSecondary && (
                     <div data-field="secondary" onMouseUp={() => handleTextSelect(card.id, "secondary", card.contentSecondary || "")}>
                       <p className={getFieldStyleClass("secondary") || "text-base text-muted-foreground"}>
-                        {card.contentSecondary}
+                        {renderHighlightedText(card.contentSecondary, card.id, "secondary")}
                       </p>
                     </div>
                   )}
@@ -343,7 +348,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                   {card.exampleZh && (
                     <div data-field="exampleZh" onMouseUp={() => handleTextSelect(card.id, "exampleZh", card.exampleZh || "")}>
                       <p className={getFieldStyleClass("exampleZh") || "text-sm text-muted-foreground"}>
-                        {card.exampleZh}
+                        {renderHighlightedText(card.exampleZh, card.id, "exampleZh")}
                       </p>
                     </div>
                   )}
@@ -363,7 +368,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                   {card.contentSecondary && (
                     <div data-field="secondary" onMouseUp={() => handleTextSelect(card.id, "secondary", card.contentSecondary || "")}>
                       <p className={getFieldStyleClass("secondary") || "text-base text-muted-foreground"}>
-                        {card.contentSecondary}
+                        {renderHighlightedText(card.contentSecondary, card.id, "secondary")}
                       </p>
                     </div>
                   )}
@@ -387,7 +392,7 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
                   {card.exampleZh && (
                     <div data-field="exampleZh" onMouseUp={() => handleTextSelect(card.id, "exampleZh", card.exampleZh || "")}>
                       <p className={getFieldStyleClass("exampleZh") || "text-sm text-muted-foreground"}>
-                        {card.exampleZh}
+                        {renderHighlightedText(card.exampleZh, card.id, "exampleZh")}
                       </p>
                     </div>
                   )}

@@ -1,15 +1,15 @@
 "use client"
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Volume2, Heart, PenLine, Check, X, Eye, EyeOff } from "lucide-react"
+import { ChevronLeft, ChevronRight, Volume2, Heart, PenLine, Check, X, Eye, EyeOff, Music } from "lucide-react"
 import { Confetti } from "@/components/ui/confetti"
 import { ComboBurst } from "@/components/ui/combo-burst"
-import { playCorrectSound, playWrongSound, playComboSound } from "@/lib/sounds"
+import { playCorrectSound, playWrongSound, playComboSound, playPianoKeySound } from "@/lib/sounds"
 
 interface Card {
   id: string
@@ -62,8 +62,8 @@ interface StudyClientProps {
   // 挖空模式相关
   activeFillCardId: string | null
   setActiveFillCardId: (id: string | null) => void
-  fillModeCards: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>
-  setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>
+  fillModeCards: Record<string, Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>
+  setFillModeCards: React.Dispatch<React.SetStateAction<Record<string, Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>>>>>
   // 答题历史相关
   fillAnswerHistory: Record<string, { correct: number; incorrect: number }>
   setFillAnswerHistory: React.Dispatch<React.SetStateAction<Record<string, { correct: number; incorrect: number }>>>
@@ -94,14 +94,87 @@ export function StudyClient({
   const [favorites, setFavorites] = useState<string[]>([])
   const contentRef = useRef<HTMLDivElement>(null)
 
+  // 学习时间记录
+  const [studyStartTime, setStudyStartTime] = useState<number | null>(null)
+
   // 卡片级挖空模式状态
   const [showAnswer, setShowAnswer] = useState(false)
+  // 标记是否是查看答案模式（不播放动效）
+  const [isViewingAnswer, setIsViewingAnswer] = useState(false)
+  // 琴音模式 - 每个字母输入时发出钢琴音色（从localStorage加载）
+  const [pianoMode, setPianoMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('pianoMode')
+      return saved === 'true'
+    }
+    return false
+  })
+
+  // 监听琴音模式变化，保存到localStorage
+  useEffect(() => {
+    localStorage.setItem('pianoMode', String(pianoMode))
+  }, [pianoMode])
+
+  // 监听showAnswer，隐藏答案时重置查看答案模式
+  useEffect(() => {
+    if (!showAnswer) {
+      setIsViewingAnswer(false)
+    }
+  }, [showAnswer])
   const [showConfetti, setShowConfetti] = useState(false)
   // 连击计数
   const [combo, setCombo] = useState(0)
   const [showCombo, setShowCombo] = useState(false)
   // 当前聚焦的挖空索引
   const [focusedFillIndex, setFocusedFillIndex] = useState<number | null>(null)
+  // 当前聚焦的字段
+  const [focusedField, setFocusedField] = useState<string | null>(null)
+  // 记录按Tab跳过的挖空（显示为错误）- 按字段区分
+  const [skippedFills, setSkippedFills] = useState<Record<string, Record<string, number[]>>>({})
+
+  const currentCard = cards[currentIndex]
+
+  // 记录学习开始时间
+  useEffect(() => {
+    setStudyStartTime(Date.now())
+    return () => {
+      // 组件卸载时保存学习时间
+      if (studyStartTime && currentCard) {
+        const learningTime = Math.round((Date.now() - studyStartTime) / 1000)
+        if (learningTime > 0) {
+          fetch("/api/progress", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              cardId: currentCard.id,
+              status: "learning",
+              learningTime
+            })
+          }).catch(console.error)
+        }
+      }
+    }
+  }, [])
+
+  // 保存学习时间并重新计时
+  const saveStudyTime = useCallback(() => {
+    if (studyStartTime && currentCard) {
+      const learningTime = Math.round((Date.now() - studyStartTime) / 1000)
+      if (learningTime > 0) {
+        fetch("/api/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cardId: currentCard.id,
+            status: "learning",
+            learningTime
+          })
+        }).catch(console.error)
+      }
+      // 重新开始计时
+      setStudyStartTime(Date.now())
+    }
+  }, [studyStartTime, currentCard])
 
   // 切换卡片时重置挖空状态
   useEffect(() => {
@@ -110,6 +183,42 @@ export function StudyClient({
     setCombo(0)
     setShowCombo(false)
   }, [currentIndex])
+
+  // 测量挖空输入框宽度
+  useLayoutEffect(() => {
+    if (!currentCard || !activeFillCardId) return
+
+    const measure = () => {
+      const inputs = document.querySelectorAll('input.fill-input[data-answer]') as NodeListOf<HTMLInputElement>
+
+      inputs.forEach((input) => {
+        const answer = input.dataset.answer
+        if (!answer) return
+
+        // 测量答案文本的宽度和高度
+        const span = document.createElement('span')
+        span.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:' + window.getComputedStyle(input).font
+        span.textContent = answer
+        document.body.appendChild(span)
+        const width = span.offsetWidth
+        const height = span.offsetHeight
+        document.body.removeChild(span)
+
+        // 只有当尺寸有效时才设置
+        if (width > 0 && height > 0) {
+          input.style.width = width + 'px'
+          input.style.height = height + 'px'
+        }
+      })
+    }
+
+    // 延迟执行确保 DOM 渲染完成
+    const timeout = setTimeout(measure, 50)
+
+    return () => {
+      clearTimeout(timeout)
+    }
+  }, [currentCard, activeFillCardId, currentIndex])
 
   // 连击显示后自动隐藏
   useEffect(() => {
@@ -120,8 +229,6 @@ export function StudyClient({
       return () => clearTimeout(timer)
     }
   }, [showCombo, combo])
-
-  const currentCard = cards[currentIndex]
 
   // 获取字段样式类名
   const getFieldStyleClass = (field: string): string => {
@@ -139,17 +246,21 @@ export function StudyClient({
   useEffect(() => {
     if (!activeFillCardId || !currentCard) return
 
-    const cardState = fillModeCards[currentCard.id]
-    if (!cardState) return
+    const cardFields = fillModeCards[currentCard.id]
+    if (!cardFields) return
 
-    // 获取该卡片的挖空数量
+    // 获取该卡片的挖空数量（排除下划线）
     const cardAnnotations = annotations[currentCard.id] || []
-    const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
+    const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight && a.highlight !== "underline")
     const totalFills = highlightAnnotations.length
 
     if (totalFills === 0) return
 
-    const answeredCount = Object.values(cardState).filter((s: any) => s.checked).length
+    // 统计所有字段的答题数
+    let answeredCount = 0
+    Object.values(cardFields).forEach((fieldState: any) => {
+      answeredCount += Object.values(fieldState).filter((s: any) => s.checked).length
+    })
 
     // 只有当所有挖空都回答了才更新历史
     if (answeredCount === totalFills) {
@@ -164,7 +275,13 @@ export function StudyClient({
         return
       }
 
-      const allCorrect = Object.values(cardState).every((s: any) => s.isCorrect === true)
+      // 检查所有字段是否都正确
+      let allCorrect = true
+      Object.values(cardFields).forEach((fieldState: any) => {
+        if (!Object.values(fieldState).every((s: any) => s.isCorrect === true)) {
+          allCorrect = false
+        }
+      })
 
       // 标记该卡片已计数
       countedCardsRef.current.add(currentCard.id)
@@ -263,32 +380,37 @@ export function StudyClient({
       if (e.key === "Enter" && isInput) {
         e.preventDefault()
 
-        // 获取当前卡片的所有挖空
+        // 获取当前卡片的所有挖空（排除下划线）
         const cardAnnotations = annotations[currentCard.id] || []
-        const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight)
-        const fillCount = highlightAnnotations.length
+        const highlightAnnotations = cardAnnotations.filter((a: Annotation) => a.highlight && a.highlight !== "underline")
+        // 只计算当前字段的挖空数量
+        const currentField = focusedField || "primary"
+        const fieldAnnotations = highlightAnnotations.filter((a: Annotation) => a.field === currentField)
+        const fillCount = fieldAnnotations.length
 
         if (fillCount === 0) return
 
-        // 提交当前答案
-        const cardState = fillModeCards[currentCard.id] || {}
+        // 提交当前答案 - 使用 focusedField 来获取对应字段的状态
+        const cardState = fillModeCards[currentCard.id]?.[currentField] || {}
         const currentIdx = focusedFillIndex || 0
         const currentFieldState = cardState[currentIdx]
 
         if (currentFieldState && currentFieldState.input.trim()) {
-          // 获取原文验证答案
+          // 获取原文验证答案 - 只获取当前字段的注解
           let fieldText = ""
-          const validAnnotations = highlightAnnotations.filter((a: Annotation) => a.field)
-          if (validAnnotations.length > 0) {
-            const sorted = [...validAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+          const fieldAnnotations = highlightAnnotations.filter((a: Annotation) => a.field === currentField)
+          if (fieldAnnotations.length > 0) {
+            // 按位置排序
+            const sorted = [...fieldAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
             const currentAnn = sorted[currentIdx]
             if (currentAnn) {
-              if (currentAnn.field === "primary") fieldText = currentCard.contentPrimary
-              else if (currentAnn.field === "secondary") fieldText = currentCard.contentSecondary || ""
-              else if (currentAnn.field === "usageNote") fieldText = currentCard.usageNote || ""
-              else if (currentAnn.field === "exampleEn") fieldText = currentCard.exampleEn || ""
-              else if (currentAnn.field === "exampleZh") fieldText = currentCard.exampleZh || ""
-              else if (currentAnn.field === "analysis") fieldText = currentCard.analysis || ""
+              // 获取对应字段的原文
+              if (currentField === "primary") fieldText = currentCard.contentPrimary
+              else if (currentField === "secondary") fieldText = currentCard.contentSecondary || ""
+              else if (currentField === "usageNote") fieldText = currentCard.usageNote || ""
+              else if (currentField === "exampleEn") fieldText = currentCard.exampleEn || ""
+              else if (currentField === "exampleZh") fieldText = currentCard.exampleZh || ""
+              else if (currentField === "analysis") fieldText = currentCard.analysis || ""
 
               const answer = fieldText.slice(currentAnn.startOffset, currentAnn.endOffset).trim().toLowerCase()
               const isCorrect = currentFieldState.input.trim().toLowerCase() === answer
@@ -321,7 +443,10 @@ export function StudyClient({
                   ...prev,
                   [currentCard.id]: {
                     ...prev[currentCard.id],
-                    [currentIdx]: { ...currentFieldState, checked: true, isCorrect }
+                    [currentField]: {
+                      ...(prev[currentCard.id]?.[currentField] || {}),
+                      [currentIdx]: { ...currentFieldState, checked: true, isCorrect }
+                    }
                   }
                 }
 
@@ -352,6 +477,9 @@ export function StudyClient({
       // e键：切换显示答案
       if (e.key === "e" || e.key === "E") {
         e.preventDefault()
+        if (!showAnswer) {
+          setIsViewingAnswer(true)
+        }
         setShowAnswer(prev => !prev)
         setCombo(0)
         setShowCombo(false)
@@ -410,98 +538,234 @@ export function StudyClient({
   // 渲染挖空文本 (卡片级)
   const renderFillInText = (text: string, cardId: string, field: string) => {
     const cardAnnotations = annotations[cardId] || []
+    // 获取所有高亮注解（包括下划线）
     const fieldAnnotations = cardAnnotations.filter((a: Annotation) => a.field === field && a.highlight)
-    if (fieldAnnotations.length === 0) return text
 
-    const sorted = [...fieldAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+    // 辅助函数：处理文本片段中的换行
+    const processNewlines = (content: string): React.ReactNode => {
+      if (!content.includes('\n')) return content
+      return content.split('\n').map((line, i, arr) => (
+        <span key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </span>
+      ))
+    }
 
-    // 过滤重叠
-    const validAnnotations: Annotation[] = []
-    for (const ann of sorted) {
-      const isOverlapping = validAnnotations.some(
+    if (fieldAnnotations.length === 0) {
+      // 没有挖空时，返回保留换行的文本
+      return processNewlines(text)
+    }
+
+    // 分离下划线和其他高亮
+    const underlineAnnotations = fieldAnnotations.filter((a: Annotation) => a.highlight === "underline")
+    const fillAnnotations = fieldAnnotations.filter((a: Annotation) => a.highlight !== "underline")
+
+    if (fillAnnotations.length === 0 && underlineAnnotations.length === 0) return text
+
+    // 过滤填充注解的重叠
+    const sortedFills = [...fillAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
+    const validFillAnnotations: Annotation[] = []
+    for (const ann of sortedFills) {
+      const isOverlapping = validFillAnnotations.some(
         existing => !(ann.endOffset <= existing.startOffset || ann.startOffset >= existing.endOffset)
       )
       if (!isOverlapping) {
-        validAnnotations.push(ann)
+        validFillAnnotations.push(ann)
       }
     }
 
+    // 将所有注解（包括下划线）合并并按位置排序，统一处理
+    const allAnnotations = [
+      ...validFillAnnotations.map((a, i) => ({ ...a, _type: 'fill' as const, _fillIndex: i })),
+      ...underlineAnnotations.map(a => ({ ...a, _type: 'underline' as const }))
+    ].sort((a, b) => a.startOffset - b.startOffset)
+
     const parts: React.JSX.Element[] = []
     let lastEnd = 0
-    const cardState = fillModeCards[cardId] || {}
+    // 使用 field 区分不同字段的挖空状态
+    const cardState = fillModeCards[cardId]?.[field] || {}
 
-    validAnnotations.forEach((ann: Annotation, index: number) => {
+    allAnnotations.forEach((ann: any, renderIndex: number) => {
+      // 跳过重叠的注解
       if (ann.startOffset < lastEnd) return
 
+      // 将渲染索引添加到注解对象上
+      ann.renderIndex = renderIndex
+
+      // 渲染普通文本（如果当前注解前有间隙）
       if (ann.startOffset > lastEnd) {
-        parts.push(<span key={`text-${field}-${index}`}>{text.slice(lastEnd, ann.startOffset)}</span>)
+        parts.push(<span key={`text-${lastEnd}`}>{processNewlines(text.slice(lastEnd, ann.startOffset))}</span>)
       }
 
-      const answer = text.slice(ann.startOffset, ann.endOffset)
-      const fieldState = cardState[index] || { input: "", checked: false, isCorrect: null }
-      const userInput = fieldState.input
-      const isChecked = fieldState.checked
-
-      let fillContent: React.ReactNode
-
-      if (showAnswer) {
-        fillContent = (
-          <span className="inline-block min-w-[60px] px-2 py-0.5 bg-green-100 text-green-800 rounded border border-green-300 font-medium animate-scale-in relative">
-            {answer}
-            {fieldState.isCorrect && (
-              <span className="absolute -top-2 -right-2 pointer-events-none">
-                <Confetti show={true} />
-              </span>
-            )}
+      if (ann._type === 'underline') {
+        // 渲染下划线
+        parts.push(
+          <span key={`underline-${ann.startOffset}`} className="px-0.5 -mx-0.5 highlighted-text" style={{ textDecoration: "underline" }}>
+            {processNewlines(text.slice(ann.startOffset, ann.endOffset))}
           </span>
         )
-      } else if (isChecked) {
-        fillContent = (
-          <span className={`inline-block min-w-[60px] px-2 py-0.5 rounded border font-medium animate-scale-in relative ${
-            fieldState.isCorrect
-              ? "bg-green-100 text-green-800 border-green-300"
-              : "bg-red-100 text-red-800 border-red-300"
-          }`}>
-            {answer}
-            {fieldState.isCorrect && (
-              <span className="absolute -top-2 -right-2 pointer-events-none">
-                <Confetti show={true} />
-              </span>
-            )}
-          </span>
-        )
+        lastEnd = ann.endOffset
       } else {
-        fillContent = (
-          <input
-            type="text"
-            data-card-id={cardId}
-            data-fill-index={index}
-            autoFocus={focusedFillIndex === index}
-            className="inline-block min-w-[80px] px-2 py-0.5 border-b-2 border-amber-400 bg-transparent focus:outline-none focus:border-amber-600"
-            placeholder="?"
-            value={userInput}
-            onChange={(e) => {
-              setFocusedFillIndex(index)
-              setFillModeCards(prev => ({
-                ...prev,
-                [cardId]: {
-                  ...(prev[cardId] || {}),
-                  [index]: { input: e.target.value, checked: false, isCorrect: null }
+        // 渲染挖空
+        const answer = text.slice(ann.startOffset, ann.endOffset)
+        const fieldState = cardState[ann._fillIndex] || { input: "", checked: false, isCorrect: null }
+        const userInput = fieldState.input
+        const isChecked = fieldState.checked
+
+        let fillContent: React.ReactNode
+
+        if (showAnswer) {
+          // 查看答案模式：显示所有正确答案，不播放动效
+          const isSkipped = skippedFills[cardId]?.[field]?.includes(ann._fillIndex)
+          const isWrong = isSkipped || fieldState.isCorrect === false
+
+          // 查看答案时，答错的显示红色，其他都显示绿色（显示正确答案）
+          const showCorrect = !isWrong || isViewingAnswer
+
+          fillContent = (
+            <span className={`px-0.5 -mx-0.5 rounded font-medium animate-scale-in ${
+              showCorrect
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}>
+              {answer}
+              {/* 查看答案模式不显示动效 */}
+            </span>
+          )
+        } else if (isChecked) {
+          fillContent = (
+            <span className={`px-0.5 -mx-0.5 rounded font-medium animate-scale-in ${
+              fieldState.isCorrect
+                ? "bg-green-100 text-green-800"
+                : "bg-red-100 text-red-800"
+            }`}>
+              {answer}
+              {fieldState.isCorrect && (
+                <span className="absolute -top-2 -right-2 pointer-events-none">
+                  <Confetti show={true} />
+                </span>
+              )}
+            </span>
+          )
+        } else {
+          // 直接渲染输入框，测量代码会自动设置尺寸
+          fillContent = (
+            <input
+              type="text"
+              data-card-id={cardId}
+              data-fill-index={ann._fillIndex}
+              data-start-offset={ann.startOffset}
+              data-end-offset={ann.endOffset}
+              data-answer={answer}
+              data-field={field}
+              autoFocus={focusedFillIndex === ann._fillIndex}
+              className="fill-input"
+              value={userInput}
+              onChange={(e) => {
+                // 琴音模式：输入字符时播放钢琴音效
+                if (pianoMode && e.target.value.length > (userInput?.length || 0)) {
+                  const newChar = e.target.value.slice(-1)
+                  playPianoKeySound(newChar)
                 }
-              }))
-            }}
-            onFocus={() => setFocusedFillIndex(index)}
-          />
-        )
+                setFocusedFillIndex(ann._fillIndex)
+                setFocusedField(field)
+                setFillModeCards(prev => ({
+                  ...prev,
+                  [cardId]: {
+                    ...(prev[cardId] || {}),
+                    [field]: {
+                      ...(prev[cardId]?.[field] || {}),
+                      [ann._fillIndex]: { input: e.target.value, checked: false, isCorrect: null }
+                    }
+                  }
+                }))
+              }}
+                onFocus={() => {
+                  setFocusedFillIndex(ann._fillIndex)
+                  setFocusedField(field)
+                }}
+                onKeyDown={(e) => {
+                if (e.key === "Tab") {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  // Tab键：标记为错误，显示答案，跳到下一个
+                  const cardId = currentCard.id
+                  const currentFillIndex = ann._fillIndex
+                  const currentStartOffset = ann.startOffset
+                  const currentEndOffset = ann.endOffset
+                  const renderIndex = ann.renderIndex // 使用渲染时的索引
+
+                  // 播放错误音效
+                  playWrongSound()
+                  setCombo(0)
+                  setShowCombo(false)
+
+                  // 记录这个挖空跳过，标记为错误
+                  setSkippedFills(prev => ({
+                    ...prev,
+                    [cardId]: {
+                      ...(prev[cardId] || {}),
+                      [field]: [...(prev[cardId]?.[field] || []), currentFillIndex]
+                    }
+                  }))
+
+                  // 设置为已检查并标记为错误，立即显示答案
+                  setFillModeCards(prev => ({
+                    ...prev,
+                    [cardId]: {
+                      ...(prev[cardId] || {}),
+                      [field]: {
+                        ...(prev[cardId]?.[field] || {}),
+                        [currentFillIndex]: { input: "", checked: true, isCorrect: false }
+                      }
+                    }
+                  }))
+
+                  // 移动到下一个挖空 - 直接使用渲染索引+1
+                  setTimeout(() => {
+                    const inputs = document.querySelectorAll(`[data-card-id="${cardId}"]`)
+                    // 找到下一个输入框（当前输入框之后的那个）
+                    const currentInput = Array.from(inputs).find((el: Element) => {
+                      const fillIdx = el.getAttribute('data-fill-index')
+                      const startOffset = el.getAttribute('data-start-offset')
+                      const endOffset = el.getAttribute('data-end-offset')
+                      return startOffset === String(currentStartOffset) && endOffset === String(currentEndOffset)
+                    }) as HTMLInputElement
+
+                    if (currentInput) {
+                      // 获取当前输入框在所有输入框中的索引
+                      const inputsArray = Array.from(inputs)
+                      const currentIndex = inputsArray.indexOf(currentInput)
+                      const nextIndex = currentIndex + 1
+
+                      if (nextIndex < inputsArray.length) {
+                        const nextInput = inputsArray[nextIndex] as HTMLInputElement
+                        nextInput.focus()
+                        nextInput.select()
+                      } else {
+                        // 如果是最后一个，回到第一个
+                        const firstInput = inputsArray[0] as HTMLInputElement
+                        firstInput.focus()
+                        firstInput.select()
+                      }
+                    }
+                  }, 100)
+                }
+              }}
+            />
+          )
+        }
+
+        parts.push(fillContent)
+
+        lastEnd = ann.endOffset
       }
-
-      parts.push(<span key={`fill-${field}-${index}`} className="relative">{fillContent}</span>)
-
-      lastEnd = ann.endOffset
     })
 
+    // 渲染剩余的文本
     if (lastEnd < text.length) {
-      parts.push(<span key="text-end">{text.slice(lastEnd)}</span>)
+      parts.push(<span key="text-end">{processNewlines(text.slice(lastEnd))}</span>)
     }
 
     return parts
@@ -524,20 +788,26 @@ export function StudyClient({
     if (currentCard) {
       // 标记刚刚重置过
       justResetRef.current = true
-      // 清空挖空内容
+      // 清空挖空内容 - 重置所有字段
       setFillModeCards(prev => {
-        const cardData = prev[currentCard.id]
-        if (!cardData) return prev
-        const resetData: Record<number, { input: string; checked: boolean; isCorrect: boolean | null }> = {}
-        Object.keys(cardData).forEach(key => {
-          const idx = parseInt(key)
-          resetData[idx] = {
-            input: "",
-            checked: false,
-            isCorrect: null
-          }
+        const cardFields = prev[currentCard.id]
+        if (!cardFields) return prev
+
+        const resetFields: Record<string, Record<number, { input: string; checked: boolean; isCorrect: boolean | null }>> = {}
+        Object.keys(cardFields).forEach(field => {
+          const fieldData = cardFields[field]
+          const resetData: Record<number, { input: string; checked: boolean; isCorrect: boolean | null }> = {}
+          Object.keys(fieldData).forEach(key => {
+            const idx = parseInt(key)
+            resetData[idx] = {
+              input: "",
+              checked: false,
+              isCorrect: null
+            }
+          })
+          resetFields[field] = resetData
         })
-        return { ...prev, [currentCard.id]: resetData }
+        return { ...prev, [currentCard.id]: resetFields }
       })
       setShowAnswer(false)
       // 清除该卡片的计数标记，允许重新计数
@@ -557,6 +827,8 @@ export function StudyClient({
           return newState
         })
       }
+      // 保存当前卡片的学习时间
+      saveStudyTime()
       setCurrentIndex(newIndex)
       setProgress(((newIndex + 1) / total) * 100)
       if (session?.user && currentCard) {
@@ -580,6 +852,8 @@ export function StudyClient({
           return newState
         })
       }
+      // 保存当前卡片的学习时间
+      saveStudyTime()
       const newIndex = currentIndex - 1
       setCurrentIndex(newIndex)
       setProgress(((newIndex + 1) / total) * 100)
@@ -704,7 +978,22 @@ export function StudyClient({
   const renderHighlightedText = (text: string, cardId: string, field: string) => {
     const cardAnnotations = annotations[cardId] || []
     const fieldAnnotations = cardAnnotations.filter((a: Annotation) => a.field === field)
-    if (fieldAnnotations.length === 0) return text
+
+    // 辅助函数：处理文本片段中的换行
+    const processNewlines = (content: string): React.ReactNode => {
+      if (!content.includes('\n')) return content
+      return content.split('\n').map((line, i, arr) => (
+        <span key={i}>
+          {line}
+          {i < arr.length - 1 && <br />}
+        </span>
+      ))
+    }
+
+    if (fieldAnnotations.length === 0) {
+      // 没有高亮时，直接返回保留换行的文本
+      return processNewlines(text)
+    }
 
     const sorted = [...fieldAnnotations].sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset)
 
@@ -726,14 +1015,17 @@ export function StudyClient({
       if (ann.startOffset < lastEnd) return
 
       if (ann.startOffset > lastEnd) {
-        parts.push(<span key={`text-${field}-${index}`}>{text.slice(lastEnd, ann.startOffset)}</span>)
+        parts.push(<span key={`text-${field}-${index}`}>{processNewlines(text.slice(lastEnd, ann.startOffset))}</span>)
       }
 
       parts.push(
         <span
           key={`highlight-${field}-${index}`}
-          className={`relative group cursor-pointer px-0.5 rounded ${ann.note ? "border-b-2 border-dashed border-amber-500" : ""}`}
-          style={{ backgroundColor: ann.highlight || undefined }}
+          className={`relative group cursor-pointer px-0.5 -mx-0.5 rounded highlighted-text ${ann.note ? "border-b-2 border-dashed border-amber-500" : ""}`}
+          style={{
+            backgroundColor: ann.highlight && ann.highlight !== "underline" ? ann.highlight : undefined,
+            textDecoration: ann.highlight === "underline" ? "underline" : undefined
+          }}
           onClick={(e) => {
             e.stopPropagation()
             setMenuState({
@@ -748,7 +1040,7 @@ export function StudyClient({
             })
           }}
         >
-          {text.slice(ann.startOffset, ann.endOffset)}
+          {processNewlines(text.slice(ann.startOffset, ann.endOffset))}
           {ann.note && (
             <span className="absolute -top-6 left-0 text-xs bg-amber-100 text-amber-800 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
               {ann.note}
@@ -761,7 +1053,7 @@ export function StudyClient({
     })
 
     if (lastEnd < text.length) {
-      parts.push(<span key="text-end">{text.slice(lastEnd)}</span>)
+      parts.push(<span key="text-end">{processNewlines(text.slice(lastEnd))}</span>)
     }
 
     return parts
@@ -848,12 +1140,17 @@ export function StudyClient({
                 <div className="flex items-center gap-0.5">
                   {/* 挖空模式控制按钮组 */}
                   {activeFillCardId === currentCard.id ? (
-                    <div className="flex items-center gap-1 bg-amber-50 rounded-lg px-2 py-1 mr-1">
+                    <div className="flex items-center gap-1 bg-amber-50 dark:bg-slate-800 rounded-lg px-2 py-1 mr-1 fill-mode-toolbar">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => setShowAnswer(!showAnswer)}
-                        className="h-6 text-xs px-1"
+                        onClick={() => {
+                          if (!showAnswer) {
+                            setIsViewingAnswer(true)
+                          }
+                          setShowAnswer(!showAnswer)
+                        }}
+                        className="h-6 text-xs px-1 text-muted-foreground hover:text-primary"
                         title={showAnswer ? "隐藏答案" : "查看答案"}
                       >
                         {showAnswer ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
@@ -863,7 +1160,7 @@ export function StudyClient({
                         variant="ghost"
                         size="sm"
                         onClick={resetFillCard}
-                        className="h-6 text-xs px-1"
+                        className="h-6 text-xs px-1 text-muted-foreground hover:text-primary"
                         title="重置"
                       >
                         <X className="h-3 w-3" />
@@ -873,7 +1170,7 @@ export function StudyClient({
                         variant="ghost"
                         size="sm"
                         onClick={() => setActiveFillCardId(null)}
-                        className="h-6 text-xs px-1 text-amber-600"
+                        className="h-6 text-xs px-1 text-muted-foreground hover:text-primary"
                         title="退出挖空"
                       >
                         <PenLine className="h-3 w-3" />
@@ -894,12 +1191,22 @@ export function StudyClient({
                           if (input) input.focus()
                         }, 100)
                       }}
-                      className="h-8 w-8 text-amber-500 hover:text-amber-600 hover:bg-amber-50"
+                      className={`h-8 w-8 ${activeFillCardId ? "text-amber-500" : "text-muted-foreground hover:text-amber-600"}`}
                       title="挖空学习"
                     >
                       <PenLine className="h-4 w-4" />
                     </Button>
                   )}
+                  {/* 琴音模式切换按钮 - 放在挖空按钮旁边 */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setPianoMode(!pianoMode)}
+                    className={`h-8 w-8 ${pianoMode ? "text-amber-500" : "text-muted-foreground hover:text-amber-600"}`}
+                    title={pianoMode ? "关闭琴音模式" : "开启琴音模式"}
+                  >
+                    <Music className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -908,15 +1215,6 @@ export function StudyClient({
                     title={favorited ? "取消收藏" : "收藏"}
                   >
                     <Heart className={`h-4 w-4 ${favorited ? "fill-current" : ""}`} />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => speak(currentCard.contentPrimary)}
-                    className="h-8 w-8 text-muted-foreground hover:text-primary"
-                    title="朗读"
-                  >
-                    <Volume2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
@@ -981,7 +1279,7 @@ export function StudyClient({
                 {bookType === "sentence" && (
                   <div className="space-y-2">
                     {/* 第一列：句型模板 */}
-                    <div data-field="primary">
+                    <div data-field="primary" onMouseUp={() => handleTextSelect(currentCard.id, "primary", currentCard.contentPrimary)}>
                       <p className={getFieldStyleClass("primary") || "text-2xl font-bold text-primary"}>
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
@@ -990,7 +1288,7 @@ export function StudyClient({
                     </div>
                     {/* 第二列：中文句型 */}
                     {currentCard.contentSecondary && (
-                      <div data-field="secondary">
+                      <div data-field="secondary" onMouseUp={() => currentCard.contentSecondary && handleTextSelect(currentCard.id, "secondary", currentCard.contentSecondary)}>
                         <p className={getFieldStyleClass("secondary") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
@@ -1000,7 +1298,7 @@ export function StudyClient({
                     )}
                     {/* 第三列：用法说明 */}
                     {currentCard.usageNote && (
-                      <div data-field="usageNote">
+                      <div data-field="usageNote" onMouseUp={() => currentCard.usageNote && handleTextSelect(currentCard.id, "usageNote", currentCard.usageNote)}>
                         <p className={getFieldStyleClass("usageNote") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
@@ -1035,7 +1333,7 @@ export function StudyClient({
                 {bookType === "corpus" && (
                   <div className="space-y-2">
                     {/* 第一列：问题 */}
-                    <div data-field="primary">
+                    <div data-field="primary" onMouseUp={() => handleTextSelect(currentCard.id, "primary", currentCard.contentPrimary)}>
                       <CardTitle className={getFieldStyleClass("primary") || "text-xl font-bold text-primary"}>
                         {activeFillCardId === currentCard.id
                           ? renderFillInText(currentCard.contentPrimary, currentCard.id, "primary")
@@ -1044,7 +1342,7 @@ export function StudyClient({
                     </div>
                     {/* 第二列：正式英文回答 */}
                     {currentCard.contentSecondary && (
-                      <div data-field="secondary">
+                      <div data-field="secondary" onMouseUp={() => currentCard.contentSecondary && handleTextSelect(currentCard.id, "secondary", currentCard.contentSecondary)}>
                         <p className={getFieldStyleClass("secondary") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.contentSecondary, currentCard.id, "secondary")
@@ -1054,7 +1352,7 @@ export function StudyClient({
                     )}
                     {/* 第三列：正式中文回答 */}
                     {currentCard.usageNote && (
-                      <div data-field="usageNote">
+                      <div data-field="usageNote" onMouseUp={() => currentCard.usageNote && handleTextSelect(currentCard.id, "usageNote", currentCard.usageNote)}>
                         <p className={getFieldStyleClass("usageNote") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.usageNote, currentCard.id, "usageNote")
@@ -1064,7 +1362,7 @@ export function StudyClient({
                     )}
                     {/* 第四列：口语英文回答 */}
                     {currentCard.exampleEn && (
-                      <div data-field="exampleEn">
+                      <div data-field="exampleEn" onMouseUp={() => currentCard.exampleEn && handleTextSelect(currentCard.id, "exampleEn", currentCard.exampleEn)}>
                         <p className={getFieldStyleClass("exampleEn") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleEn, currentCard.id, "exampleEn")
@@ -1074,7 +1372,7 @@ export function StudyClient({
                     )}
                     {/* 第五列：口语中文回答 */}
                     {currentCard.exampleZh && (
-                      <div data-field="exampleZh">
+                      <div data-field="exampleZh" onMouseUp={() => currentCard.exampleZh && handleTextSelect(currentCard.id, "exampleZh", currentCard.exampleZh)}>
                         <p className={getFieldStyleClass("exampleZh") || "text-base text-muted-foreground"}>
                           {activeFillCardId === currentCard.id
                             ? renderFillInText(currentCard.exampleZh, currentCard.id, "exampleZh")
@@ -1114,7 +1412,7 @@ export function StudyClient({
 
       {/* 快捷键提示 */}
       <div className="text-center text-xs text-muted-foreground">
-        快捷键: ← → 切换卡片 | Q 挖空模式 | E 查看答案 | X 重置 | 回车提交
+        快捷键: ← → 切换卡片 | Q 挖空模式 | E 查看答案 | X 重置 | 回车提交 | Tab 跳过此题
       </div>
     </div>
   )

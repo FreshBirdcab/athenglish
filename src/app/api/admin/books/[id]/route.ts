@@ -77,7 +77,7 @@ export async function PUT(
       where: { id: params.id },
       data: {
         name: name ?? undefined,
-        description: description ?? undefined,
+        description: description === '' ? null : description ?? null,
         cover: cover ?? undefined,
         order: order ?? undefined,
       }

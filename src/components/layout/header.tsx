@@ -2,15 +2,24 @@
 
 import Link from "next/link"
 import Image from "next/image"
+import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
-import { User, LogOut, Sparkles } from "lucide-react"
+import { User, LogOut, Sparkles, Moon, Sun } from "lucide-react"
+import { useTheme } from "@/components/providers/theme-provider"
 
 export function Header() {
+  const pathname = usePathname()
   const { data: session, status } = useSession()
+  const { theme, toggleTheme } = useTheme()
+
+  // 管理后台不显示全局 Header
+  if (pathname?.startsWith("/admin")) {
+    return null
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/90 backdrop-blur-md">
       {/* 顶部装饰线 */}
       <div className="h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50" />
 
@@ -50,7 +59,22 @@ export function Header() {
           </nav>
         </div>
 
-        <div className="flex flex-1 items-center justify-end gap-4">
+        <div className="flex flex-1 items-center justify-end gap-2">
+          {/* 暗夜模式切换 */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="w-9 h-9 p-0 hover:bg-primary/10"
+            title={theme === "dark" ? "切换到亮色模式" : "切换到暗夜模式"}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4 text-amber-400" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
+          </Button>
+
           {session ? (
             <>
               <span className="text-sm text-muted-foreground hidden sm:inline flex items-center gap-2">
@@ -61,7 +85,7 @@ export function Header() {
                 variant="ghost"
                 size="sm"
                 onClick={() => signOut()}
-                className="hover:bg-primary/5"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 退出
@@ -75,7 +99,7 @@ export function Header() {
                   登录
                 </Link>
               </Button>
-              <Button size="sm" asChild className="btn-gradient">
+              <Button size="sm" asChild className="btn-gradient hover:!text-black">
                 <Link href="/register">注册</Link>
               </Button>
             </>

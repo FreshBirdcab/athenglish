@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     const file = formData.get('file') as File
     const bookName = formData.get('bookName') as string
     const bookType = formData.get('bookType') as string
+    const columnNames = formData.get('columnNames') as string
 
     if (!file) {
       return NextResponse.json({ error: "请选择文件" }, { status: 400 })
@@ -122,10 +123,16 @@ export async function POST(request: Request) {
 
     // 创建默认样式设置
     const defaultStyles = getDefaultFieldStyles(bookType)
+    // 解析列名
+    let parsedColumnNames: string[] | null = null
+    if (columnNames && columnNames.trim()) {
+      parsedColumnNames = columnNames.split(',').map(s => s.trim()).filter(s => s)
+    }
     await prisma.bookStyleSettings.create({
       data: {
         bookId: book.id,
-        fieldStyles: JSON.stringify(defaultStyles)
+        fieldStyles: JSON.stringify(defaultStyles),
+        columnNames: parsedColumnNames ? JSON.stringify(parsedColumnNames) : null
       }
     })
 
