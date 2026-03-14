@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { prisma } from "@/lib/prisma"
 import { BookOpen, MessageCircle, PenTool, Sparkles, ChevronRight } from "lucide-react"
 import { revalidatePath } from "next/cache"
+import GalaxyBackground from "@/components/layout/galaxy-background"
 
 async function getBooks() {
   // 每次获取时重新验证，确保获取最新数据
@@ -58,16 +59,24 @@ export default async function HomePage() {
   const books = await getBooks()
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* 顶部区域 */}
-      <div className="relative overflow-hidden hero-gradient py-16">
+    <div className="min-h-screen bg-background relative">
+      {/* 顶部区域 - 动态渐变 + 浮动光点 */}
+      <div className="relative z-20 overflow-hidden hero-gradient-home py-13.5">
+        {/* 浮动光点 */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="float-orb w-32 h-32 bg-amber-200/30 -top-4 -left-8" />
+          <div className="float-orb-delayed w-40 h-40 bg-orange-200/20 top-1/2 -right-12" style={{ animationDelay: '-2s' }} />
+          <div className="float-orb w-24 h-24 bg-yellow-200/25 bottom-0 left-1/3" style={{ animationDelay: '-4s' }} />
+          <div className="float-orb-delayed w-28 h-28 bg-amber-100/20 top-1/4 right-1/4" style={{ animationDelay: '-1s' }} />
+        </div>
+
         {/* 装饰光晕 */}
-        <div className="absolute inset-0 opacity-20">
+        <div className="absolute inset-0 opacity-30">
           <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
           <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative content-container">
+        <div className="relative content-container flex flex-col justify-center min-h-[150px]">
           <h1 className="text-4xl md:text-5xl font-bold hero-text mb-3 tracking-tight">
             AthEnglish
           </h1>
@@ -77,8 +86,11 @@ export default async function HomePage() {
         </div>
       </div>
 
+      {/* 银河星空背景 - 暗夜模式 */}
+      <GalaxyBackground />
+
       {/* 学习模块 */}
-      <div className="content-container py-8 -mt-3">
+      <div className="content-container py-8 -mt-6 relative z-10">
         <div className="grid gap-8 lg:grid-cols-3">
           {/* 词汇栏 */}
           <div className="space-y-4">

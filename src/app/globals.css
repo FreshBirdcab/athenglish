@@ -52,43 +52,51 @@
   --chart-5: 30 60% 55%;
 }
 
-/* 暗色主题 - 夜晚的雅典 */
+/* 暗夜主题 - 科技感雅典娜 */
 [data-theme="dark"] {
-  --background: 220 25% 8%;
-  --foreground: 40 20% 92%;
+  /* 深邃夜空背景 - 带有极光蓝调 */
+  --background: 220 30% 6%;
+  --foreground: 210 20% 92%;
 
-  --card: 220 20% 10%;
-  --card-foreground: 40 20% 92%;
+  /* 卡片 - 带有微妙的蓝调 */
+  --card: 220 25% 9%;
+  --card-foreground: 210 20% 92%;
 
-  --popover: 220 18% 12%;
-  --popover-foreground: 40 20% 92%;
+  /* 弹窗 - 稍微亮一点 */
+  --popover: 220 22% 11%;
+  --popover-foreground: 210 20% 92%;
 
-  /* 暗色主题下更亮金色 */
-  --primary: 38 80% 55%;
-  --primary-foreground: 220 20% 10%;
+  /* 主色 - 科技金/琥珀色，带有霓虹感 */
+  --primary: 38 90% 55%;
+  --primary-foreground: 220 30% 6%;
 
-  --secondary: 220 15% 15%;
-  --secondary-foreground: 40 20% 88%;
+  /* 次色 - 深蓝灰 */
+  --secondary: 220 20% 14%;
+  --secondary-foreground: 210 15% 85%;
 
-  --muted: 220 15% 12%;
-  --muted-foreground: 40 10% 60%;
+  /* 弱化色 - 深蓝 */
+  --muted: 220 18% 12%;
+  --muted-foreground: 220 10% 55%;
 
-  /* 深蓝爱琴海 */
-  --accent: 200 60% 50%;
-  --accent-foreground: 220 20% 10%;
+  /* 强调色 - 科技蓝/青色 */
+  --accent: 185 70% 55%;
+  --accent-foreground: 220 30% 6%;
 
-  --destructive: 15 70% 55%;
-  --destructive-foreground: 40 20% 92%;
+  /* 错误/警告 - 带有科技感的红色 */
+  --destructive: 0 70% 55%;
+  --destructive-foreground: 210 20% 92%;
 
-  --border: 220 15% 18%;
-  --input: 220 15% 20%;
-  --ring: 38 80% 55%;
+  /* 边框 - 深蓝灰 */
+  --border: 220 18% 18%;
+  --input: 220 18% 22%;
+  --ring: 38 90% 55%;
 
-  --chart-1: 38 80% 55%;
-  --chart-2: 35 45% 55%;
-  --chart-3: 200 60% 50%;
-  --chart-4: 160 40% 45%;
-  --chart-5: 30 65% 60%;
+  /* 图表颜色 - 霓虹色调 */
+  --chart-1: 38 90% 55%;
+  --chart-2: 185 70% 55%;
+  --chart-3: 270 60% 60%;
+  --chart-4: 320 65% 55%;
+  --chart-5: 45 80% 55%;
 }
 
 @theme inline {
@@ -306,6 +314,32 @@
   animation: bounce-subtle 1s ease-in-out infinite;
 }
 
+/* 摇晃动画 */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* 动态渐变背景动画 */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 8s ease infinite;
+}
+
 /* 交错动画延迟 */
 .stagger-1 { animation-delay: 0.1s; }
 .stagger-2 { animation-delay: 0.2s; }
@@ -319,6 +353,225 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* 页面头部渐变背景 - 使用CSS变量 */
+.hero-gradient {
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(38 60% 40%) 50%, hsl(var(--accent)) 100%);
+}
+
+[data-theme="dark"] .hero-gradient {
+  background: linear-gradient(135deg, hsl(220 25% 15%) 0%, hsl(220 20% 18%) 50%, hsl(185 35% 25%) 100%);
+}
+
+/* 首页动态渐变背景 */
+.hero-gradient-home {
+  background: linear-gradient(135deg,
+    hsl(35 55% 45%) 0%,
+    hsl(38 60% 40%) 25%,
+    hsl(var(--accent) / 80%) 50%,
+    hsl(38 60% 40%) 75%,
+    hsl(35 55% 45%) 100%);
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+[data-theme="dark"] .hero-gradient-home {
+  background: linear-gradient(135deg,
+    hsl(220 25% 18%) 0%,
+    hsl(220 20% 22%) 25%,
+    hsl(185 35% 28%) 50%,
+    hsl(220 20% 22%) 75%,
+    hsl(220 25% 18%) 100%);
+  background-size: 400% 400%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* 银河星空背景 - 仅暗夜模式 */
+.galaxy-background {
+  display: none;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .galaxy-background {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 30%, hsl(220 30% 10%) 0%, hsl(220 35% 6%) 60%, hsl(240 25% 4%) 100%);
+}
+
+/* 星空容器 - 用于鼠标交互 */
+.galaxy-stars-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.15s ease-out;
+}
+
+/* 星星层 */
+.galaxy-stars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+/* 单个星星 */
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: hsl(210 80% 90%);
+}
+
+/* 闪烁星星 */
+.star-twinkle {
+  animation: star-twinkle ease-in-out infinite;
+}
+
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* 随机生灭星星 */
+.star-fade {
+  animation: star-fade ease-in-out infinite;
+}
+
+@keyframes star-fade {
+  0% { opacity: 0; transform: scale(0); }
+  20% { opacity: 1; transform: scale(1); }
+  80% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0); }
+}
+
+/* 鼠标流星 */
+.mouse-comet {
+  position: absolute;
+  width: 6.5px;
+  height: 6.5px;
+  border-radius: 50%;
+  background: hsl(210 100% 95%);
+  box-shadow:
+    0 0 6px 2px hsl(210 100% 90% / 0.6),
+    0 0 15px 5px hsl(210 80% 80% / 0.3),
+    0 0 30px 10px hsl(220 60% 70% / 0.15);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  animation: mouse-star-twinkle 3s ease-in-out infinite;
+}
+
+@keyframes mouse-star-twinkle {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.1);
+    opacity: 1;
+  }
+}
+
+.mouse-comet.active {
+  opacity: 1;
+}
+
+/* 动态尾迹 */
+.comet-trail {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.comet-trail.active {
+  opacity: 1;
+}
+
+.comet-trail-segment {
+  position: absolute;
+  border-radius: 50%;
+  background: hsl(210 100% 95%);
+  transform: translate(-50%, -50%);
+}
+
+/* 浮动光点动画 */
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-20px) scale(1.1); opacity: 1; }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+  50% { transform: translateY(-15px) scale(1.2); opacity: 0.9; }
+}
+
+.float-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(30px);
+  animation: float 6s ease-in-out infinite;
+}
+
+.float-orb-delayed {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  animation: float-delayed 8s ease-in-out infinite;
+}
+
+/* 头部文字颜色 - 亮色模式 */
+.hero-text {
+  color: hsl(30 40% 18%);
+}
+
+/* 头部文字颜色 - 暗夜模式 */
+[data-theme="dark"] .hero-text {
+  color: hsl(210 20% 92%);
+}
+
+/* 头部次要文字颜色 - 亮色模式 */
+.hero-text-muted {
+  color: hsl(30 35% 28%);
+}
+
+/* 头部次要文字颜色 - 暗夜模式 */
+[data-theme="dark"] .hero-text-muted {
+  color: hsl(210 10% 65%);
+}
+
+/* 头部链接悬停效果 */
+.hero-link {
+  color: hsl(30 40% 18% / 0.7);
+  transition: all 0.2s ease;
+}
+
+.hero-link:hover {
+  color: hsl(30 40% 18%);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+[data-theme="dark"] .hero-link {
+  color: hsl(210 15% 85% / 0.7);
+}
+
+[data-theme="dark"] .hero-link:hover {
+  color: hsl(210 10% 95%);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 /* 渐变背景按钮 */
@@ -469,6 +722,15 @@
   margin: 0 auto;
   padding-left: 1rem;
   padding-right: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 确保全屏模式下容器仍然居中 */
+@media (fullscreen) {
+  .content-container {
+    max-width: 100%;
+  }
 }
 
 @media (min-width: 640px) {
@@ -547,8 +809,44 @@ a:hover {
   color: hsl(var(--primary));
 }
 
-/* 输入框聚焦效果 */
-input:focus,
+/* 输入框样式优化 - 只影响挖空输入框 */
+input.fill-input {
+  height: auto !important;
+  line-height: inherit !important;
+  padding: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  max-width: none !important;
+}
+
+/* 挖空输入框样式 */
+input.fill-input {
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-bottom: 2px solid rgb(251 191 36) !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  line-height: inherit !important;
+  white-space: pre !important;
+  box-sizing: border-box !important;
+  caret-color: rgb(251 191 36) !important;
+}
+
+/* 挖空输入框聚焦时 - 去掉外缘边框，只保留下划线 */
+input.fill-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-bottom-color: rgb(251 191 36) !important;
+}
+
+/* 输入框聚焦效果 - 但排除挖空输入框 */
+input:focus:not(.fill-input),
 textarea:focus {
   outline: none;
   border-color: hsl(var(--primary));
@@ -598,4 +896,97 @@ progress::-webkit-progress-value {
 /* Tab 选中指示器 */
 .tab-indicator {
   background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)));
+}
+
+/* 亮色模式高亮文字颜色 */
+.highlighted-text {
+  color: hsl(35 25% 15%);
+  font-weight: 500;
+}
+
+/* 亮色模式下划线文字颜色 - 确保继承正确颜色 */
+span[style*="text-decoration: underline"]:not([style*="background-color"]) {
+  color: inherit;
+}
+
+/* 暗夜模式高亮颜色调整 - 使其在深色背景上更清晰 */
+/* 暗夜模式高亮文字颜色调整 - 保持背景色不变，只改变文字颜色使其清晰可见 */
+/* 有背景色的高亮使用深色文字 */
+[data-theme="dark"] .highlighted-text[style*="background-color"] {
+  color: hsl(35 40% 8%) !important;
+}
+
+/* 暗夜模式下划线文字颜色 */
+[data-theme="dark"] span[style*="text-decoration: underline"] {
+  color: hsl(45 60% 75%) !important;
+}
+
+/* 暗夜模式添加备注后的文字颜色（无论是否有背景色）- 使用浅色文字确保清晰 */
+[data-theme="dark"] .border-b-2.border-dashed.border-amber-500 {
+  color: hsl(210 20% 92%) !important;
+}
+
+/* 暗夜模式添加备注后的下划线虚线颜色 */
+[data-theme="dark"] .border-dashed.border-amber-500 {
+  border-color: hsl(38 70% 60%) !important;
+}
+
+/* 暗夜模式备注气泡背景和文字颜色 */
+[data-theme="dark"] .group-hover .text-amber-800,
+[data-theme="dark"] span[class*="absolute"] .text-amber-800 {
+  background-color: hsl(38 60% 25%) !important;
+  color: hsl(45 80% 80%) !important;
+}
+
+/* 挖空模式工具栏按钮 - 亮色模式 */
+.fill-mode-toolbar {
+  background-color: hsl(40 30% 95%) !important;
+}
+
+.fill-mode-toolbar .text-muted-foreground {
+  color: hsl(35 20% 35%);
+}
+
+.fill-mode-toolbar .hover\:text-primary:hover {
+  color: hsl(38 75% 45%);
+}
+
+.fill-mode-toolbar .bg-amber-300 {
+  background-color: hsl(38 50% 55%);
+}
+
+/* 暗夜模式挖空模式工具栏 */
+[data-theme="dark"] .fill-mode-toolbar {
+  background-color: hsl(220 20% 15%) !important;
+}
+
+[data-theme="dark"] .fill-mode-toolbar .text-muted-foreground {
+  color: hsl(220 15% 65%);
+}
+
+[data-theme="dark"] .fill-mode-toolbar .hover\:text-primary:hover {
+  color: hsl(38 90% 65%);
+}
+
+[data-theme="dark"] .fill-mode-toolbar .bg-amber-300 {
+  background-color: hsl(38 50% 40%);
+}
+
+/* 暗夜模式批注弹窗 */
+[data-theme="dark"] .annotation-popup {
+  background: hsl(220 22% 12%);
+  border-color: hsl(220 18% 22%);
+  color: hsl(210 20% 92%);
+}
+
+[data-theme="dark"] .annotation-popup input,
+[data-theme="dark"] .annotation-popup textarea {
+  background: hsl(220 18% 15%);
+  border-color: hsl(220 18% 22%);
+  color: hsl(210 20% 92%);
+}
+
+[data-theme="dark"] .annotation-popup input::placeholder,
+[data-theme="dark"] .annotation-popup textarea::placeholder {
+  color: hsl(220 10% 50%);
 }
