@@ -1,4 +1,7 @@
-FROM node:20-alpine AS base
+FROM node:20-slim AS base
+
+# Install OpenSSL (Prisma requirement)
+RUN apt-get update -y && apt-get install -y openssl libssl3 && rm -rf /var/lib/apt/lists/*
 
 # ---- Dependencies ----
 FROM base AS deps
@@ -37,11 +40,6 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 # Copy @libsql/client native bindings
 COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
-
-# Database will be uploaded separately to the persistent volume
-
-# Install OpenSSL 1.1 compat for Prisma engine
-RUN apk add --no-cache openssl1.1-compat
 
 # Entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
