@@ -35,10 +35,13 @@ COPY --from=builder /app/next.config.js ./next.config.js
 COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-# Copy @libsql/client native bindings if needed
-COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql 2>/dev/null || true
+# Copy @libsql/client native bindings
+COPY --from=builder /app/node_modules/@libsql ./node_modules/@libsql
 
 # Database will be uploaded separately to the persistent volume
+
+# Install OpenSSL 1.1 compat for Prisma engine
+RUN apk add --no-cache openssl1.1-compat
 
 # Entrypoint script
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
