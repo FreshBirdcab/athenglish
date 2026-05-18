@@ -34,8 +34,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.js ./next.config.js
 
-# Copy prisma schema for db push
-COPY --from=builder /app/prisma/schema.prisma ./prisma/schema.prisma
+# Copy prisma schema (kept outside volume mount)
+COPY --from=builder /app/prisma/schema.prisma ./schema.prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 # Copy @libsql/client native bindings
