@@ -8,6 +8,7 @@ import fs from "fs"
 import { v4 as uuidv4 } from "uuid"
 import os from "os"
 import { execSync } from "child_process"
+import AdmZip from "adm-zip"
 
 // 上传并解析书籍文件
 export async function POST(request: Request) {
@@ -50,8 +51,43 @@ export async function POST(request: Request) {
       fs.mkdirSync(extractDir, { recursive: true })
 
       try {
-        // 使用 PowerShell 解压
-        execSync(`powershell -Command "Expand-Archive -Path '${filePath}' -DestinationPath '${extractDir}' -Force"`, { encoding: 'utf-8', stdio: 'pipe' })
+        // 使用 adm-zip 解压
+        const zip = new AdmZip(filePath)
+        zip.extractAllTo(extractDir, true)
+
+        // 解压后修复文件名编码问题
+        const fixEncoding = (dir: string) => {
+          const items = fs.readdirSync(dir)
+          for (const item of items) {
+            const fullPath = path.join(dir, item)
+            const stat = fs.statSync(fullPath)
+
+            // 如果文件名看起来像乱码（不包含中文但包含高位字符）
+            if (!/[\u4e00-\u9fa5]/.test(item) && /[\x80-\xff]/.test(item)) {
+              // 尝试 GBK -> UTF-8 转换
+              try {
+                const iconv = require('iconv-lite')
+                const fixed = iconv.decode(Buffer.from(item, 'binary'), 'gbk')
+                if (/[\u4e00-\u9fa5]/.test(fixed) && fixed !== item) {
+                  const newPath = path.join(dir, fixed)
+                  fs.renameSync(fullPath, newPath)
+                  console.log("[编码修复]", item, "->", fixed)
+                  if (stat.isDirectory()) {
+                    fixEncoding(newPath) // 递归处理子目录
+                  }
+                  continue
+                }
+              } catch (e) {}
+            }
+
+            // 递归处理子目录
+            if (stat.isDirectory()) {
+              fixEncoding(fullPath)
+            }
+          }
+        }
+
+        fixEncoding(extractDir)
 
         // 检查解压后的目录结构
         const extractedItems = fs.readdirSync(extractDir)
@@ -180,7 +216,21 @@ function getDefaultFieldStyles(bookType: string) {
 }
 
 async function importFilesToBook(dirPath: string, bookId: string, bookType: string) {
-  const items = fs.readdirSync(dirPath)
+  // 使用 Buffer 确保编码正确
+  const items = fs.readdirSync(dirPath).map(name => {
+    // 检查是否是乱码（检测常见编码问题特征）
+    if (name && name.includes('�')) {
+      // 尝试用 iconv-lite 或原生方式修复
+      try {
+        const buffer = Buffer.from(name, 'utf8')
+        const fixed = buffer.toString('utf8')
+        if (!fixed.includes('�')) {
+          return fixed
+        }
+      } catch (e) {}
+    }
+    return name
+  })
   console.log("[importFilesToBook] 目录内容:", items)
 
   // 如果是单个Excel文件

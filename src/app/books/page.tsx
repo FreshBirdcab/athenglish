@@ -83,15 +83,15 @@ export default async function BooksPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部区域 */}
-      <div className="relative overflow-hidden hero-gradient py-12">
+      <div className="relative overflow-hidden hero-gradient py-13.5">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
           <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
         </div>
-        <div className="relative content-container">
+        <div className="relative content-container flex flex-col justify-center min-h-[150px]">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 hero-text-muted hover:hero-text mb-4 transition-colors text-sm font-medium"
+            className="inline-flex items-center gap-2 hero-link mb-4 text-sm font-medium"
           >
             <ChevronRight className="w-4 h-4 -rotate-90" />
             返回首页
@@ -109,7 +109,7 @@ export default async function BooksPage() {
       </div>
 
       {/* 书籍列表 */}
-      <div className="content-container py-8 -mt-3">
+      <div className="content-container py-8 -mt-6">
         {/* 词汇栏 */}
         <div className="space-y-4 mb-8">
           <div className="flex items-center gap-2 pb-3 border-b border-border">

@@ -193,23 +193,23 @@ export function BookClient({ book }: { book: BookData }) {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部区域 - 使用主色渐变 */}
-      <div className="relative overflow-hidden hero-gradient py-12">
+      <div className="relative overflow-hidden hero-gradient py-13.5">
         {/* 装饰性模糊光晕 - 更低调 */}
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
           <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
         </div>
-        <div className="relative content-container">
+        <div className="relative content-container flex flex-col justify-center min-h-[150px]">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 hero-link mb-4 transition-colors text-sm font-medium opacity-80 hover:opacity-100"
+            className="inline-flex items-center gap-2 hero-link mb-4 text-sm font-medium"
           >
             <ChevronDown className="w-4 h-4 rotate-90" />
             返回首页
           </Link>
           <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/20">
-              <BookOpen className="w-7 h-7 hero-text" />
+            <div className="w-14 h-14 rounded-xl bg-white/25 backdrop-blur-sm flex items-center justify-center flex-shrink-0 border border-white/25">
+              <BookOpen className="w-7 h-7 hero-icon" />
             </div>
             <div>
               <h1 className="text-3xl md:text-4xl font-bold hero-text mb-2 tracking-tight">
@@ -237,7 +237,7 @@ export function BookClient({ book }: { book: BookData }) {
         </div>
       </div>
 
-      <div className="content-container py-6 -mt-3">
+      <div className="content-container py-8 -mt-6">
         <div className="space-y-3">
           {book.chapters.map((chapter, chapterIndex) => {
             const isOpen = openChapters.has(chapter.id)
@@ -263,7 +263,10 @@ export function BookClient({ book }: { book: BookData }) {
                 className="rounded-xl border border-border bg-card shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
                 style={{
                   // 从学习页返回时跳过动画，直接显示
-                  animation: isReturningFromStudy ? 'none' : 'fadeSlideIn 0.4s ease-out forwards',
+                  animationName: isReturningFromStudy ? 'none' : 'fadeSlideIn',
+                  animationDuration: '0.4s',
+                  animationTimingFunction: 'ease-out',
+                  animationFillMode: 'forwards',
                   // 限制最大延迟为1.5秒，避免章节过多时等待过长
                   animationDelay: isReturningFromStudy ? '0s' : `${Math.min(chapterIndex, 18) * 0.08}s`,
                   opacity: isReturningFromStudy ? 1 : 0
@@ -326,7 +329,10 @@ export function BookClient({ book }: { book: BookData }) {
                             href={`/learn/${subChapter.id}`}
                             className="group"
                             style={{
-                              animation: isOpen ? `fadeSlideUp 0.3s ease-out forwards` : 'none',
+                              animationName: isOpen ? 'fadeSlideUp' : 'none',
+                              animationDuration: '0.3s',
+                              animationTimingFunction: 'ease-out',
+                              animationFillMode: 'forwards',
                               // 限制最大延迟为0.8秒
                               animationDelay: `${Math.min(subIndex, 20) * 0.04}s`,
                               opacity: 0

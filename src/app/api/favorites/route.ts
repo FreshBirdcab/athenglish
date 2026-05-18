@@ -71,7 +71,28 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    return NextResponse.json({ favorites })
+    // 获取每个 subChapter 中卡片的索引映射
+    const subChapterIds = [...new Set(favorites.map(f => f.card.subChapterId))]
+    const cardIndices: Record<string, number> = {}
+
+    for (const subChapterId of subChapterIds) {
+      const cards = await prisma.card.findMany({
+        where: { subChapterId },
+        orderBy: { order: 'asc' },
+        select: { id: true }
+      })
+      cards.forEach((card, index) => {
+        cardIndices[card.id] = index
+      })
+    }
+
+    // 添加 cardIndex 到返回数据
+    const favoritesWithIndex = favorites.map(fav => ({
+      ...fav,
+      cardIndex: cardIndices[fav.card.id] ?? 0
+    }))
+
+    return NextResponse.json({ favorites: favoritesWithIndex })
   } catch (error) {
     console.error("获取收藏错误:", error)
     return NextResponse.json({ error: "获取失败" }, { status: 500 })

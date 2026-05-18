@@ -1,102 +1,63 @@
 @import "tailwindcss";
+@import "./globals-fill-input.css";
 
 @plugin "tailwindcss-animate";
 
 /* 古希腊风格主题 - AthEnglish */
 :root {
-  /* 主背景 - 象牙白/米色 */
-  --background: 40 30% 96%;
-  --foreground: 35 25% 15%;
-
-  /* 卡片背景 */
-  --card: 40 20% 98%;
-  --card-foreground: 35 25% 15%;
-
-  /* 弹窗 */
-  --popover: 40 20% 100%;
-  --popover-foreground: 35 25% 15%;
-
-  /* 主色 - 金色/琥珀色 (雅典娜金色) */
-  --primary: 38 75% 45%;
-  --primary-foreground: 40 20% 98%;
-
-  /* 次色 - 橄榄绿/大地色 */
-  --secondary: 35 30% 88%;
-  --secondary-foreground: 35 25% 20%;
-
-  /* 弱化色 - 浅棕 */
-  --muted: 35 20% 90%;
-  --muted-foreground: 35 15% 45%;
-
-  /* 强调色 - 爱琴海蓝 */
-  --accent: 200 55% 45%;
-  --accent-foreground: 200 30% 98%;
-
-  /* 陶土红 - 用于重要强调 */
-  --destructive: 15 65% 50%;
-  --destructive-foreground: 40 20% 98%;
-
-  /* 边框 - 淡金色 */
-  --border: 38 20% 80%;
-  --input: 38 20% 85%;
-  --ring: 38 75% 45%;
-
-  /* 圆角 - 略微圆润 */
+  --background: 220 20% 97%;
+  --foreground: 222 35% 16%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 35% 16%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 35% 16%;
+  --primary: 222 38% 30%;
+  --primary-foreground: 220 15% 97%;
+  --secondary: 220 15% 93%;
+  --secondary-foreground: 222 30% 20%;
+  --muted: 220 14% 92%;
+  --muted-foreground: 220 12% 42%;
+  --accent: 210 32% 44%;
+  --accent-foreground: 220 15% 97%;
+  --destructive: 0 42% 44%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 220 14% 84%;
+  --input: 220 14% 88%;
+  --ring: 222 38% 30%;
   --radius: 0.6rem;
-
-  /* 图表颜色 */
-  --chart-1: 38 75% 45%;
-  --chart-2: 35 40% 50%;
-  --chart-3: 200 55% 45%;
-  --chart-4: 160 35% 40%;
-  --chart-5: 30 60% 55%;
+  --chart-1: 222 38% 40%;
+  --chart-2: 210 32% 48%;
+  --chart-3: 220 28% 36%;
+  --chart-4: 215 35% 44%;
+  --chart-5: 225 25% 42%;
 }
 
 /* 暗夜主题 - 科技感雅典娜 */
 [data-theme="dark"] {
-  /* 深邃夜空背景 - 带有极光蓝调 */
-  --background: 220 30% 6%;
-  --foreground: 210 20% 92%;
-
-  /* 卡片 - 带有微妙的蓝调 */
-  --card: 220 25% 9%;
-  --card-foreground: 210 20% 92%;
-
-  /* 弹窗 - 稍微亮一点 */
-  --popover: 220 22% 11%;
-  --popover-foreground: 210 20% 92%;
-
-  /* 主色 - 科技金/琥珀色，带有霓虹感 */
-  --primary: 38 90% 55%;
-  --primary-foreground: 220 30% 6%;
-
-  /* 次色 - 深蓝灰 */
-  --secondary: 220 20% 14%;
-  --secondary-foreground: 210 15% 85%;
-
-  /* 弱化色 - 深蓝 */
-  --muted: 220 18% 12%;
-  --muted-foreground: 220 10% 55%;
-
-  /* 强调色 - 科技蓝/青色 */
-  --accent: 185 70% 55%;
-  --accent-foreground: 220 30% 6%;
-
-  /* 错误/警告 - 带有科技感的红色 */
-  --destructive: 0 70% 55%;
-  --destructive-foreground: 210 20% 92%;
-
-  /* 边框 - 深蓝灰 */
-  --border: 220 18% 18%;
-  --input: 220 18% 22%;
-  --ring: 38 90% 55%;
-
-  /* 图表颜色 - 霓虹色调 */
-  --chart-1: 38 90% 55%;
-  --chart-2: 185 70% 55%;
-  --chart-3: 270 60% 60%;
-  --chart-4: 320 65% 55%;
-  --chart-5: 45 80% 55%;
+  --background: 222 28% 7%;
+  --foreground: 220 15% 90%;
+  --card: 222 24% 10%;
+  --card-foreground: 220 15% 90%;
+  --popover: 222 22% 12%;
+  --popover-foreground: 220 15% 90%;
+  --primary: 210 38% 56%;
+  --primary-foreground: 222 28% 7%;
+  --secondary: 222 20% 16%;
+  --secondary-foreground: 220 12% 84%;
+  --muted: 222 18% 14%;
+  --muted-foreground: 220 10% 56%;
+  --accent: 215 28% 46%;
+  --accent-foreground: 220 15% 90%;
+  --destructive: 0 38% 48%;
+  --destructive-foreground: 220 15% 90%;
+  --border: 222 18% 20%;
+  --input: 222 18% 24%;
+  --ring: 210 38% 56%;
+  --chart-1: 210 38% 52%;
+  --chart-2: 215 28% 46%;
+  --chart-3: 222 30% 42%;
+  --chart-4: 205 32% 50%;
+  --chart-5: 218 25% 48%;
 }
 
 @theme inline {
@@ -355,34 +316,34 @@
   background-clip: text;
 }
 
-/* 页面头部渐变背景 - 使用CSS变量 */
+/* 页面头部渐变背景 - 亮色模式使用浅色柔和色调（地中海天空色） */
 .hero-gradient {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(38 60% 40%) 50%, hsl(var(--accent)) 100%);
+  background: linear-gradient(135deg, hsl(215 22% 72%) 0%, hsl(210 20% 66%) 50%, hsl(200 18% 60%) 100%);
 }
 
 [data-theme="dark"] .hero-gradient {
-  background: linear-gradient(135deg, hsl(220 25% 15%) 0%, hsl(220 20% 18%) 50%, hsl(185 35% 25%) 100%);
+  background: linear-gradient(135deg, hsl(222 24% 14%) 0%, hsl(222 22% 18%) 50%, hsl(215 20% 22%) 100%);
 }
 
 /* 首页动态渐变背景 */
 .hero-gradient-home {
   background: linear-gradient(135deg,
-    hsl(35 55% 45%) 0%,
-    hsl(38 60% 40%) 25%,
-    hsl(var(--accent) / 80%) 50%,
-    hsl(38 60% 40%) 75%,
-    hsl(35 55% 45%) 100%);
+    hsl(215 22% 74%) 0%,
+    hsl(210 21% 70%) 25%,
+    hsl(200 20% 66%) 50%,
+    hsl(210 21% 70%) 75%,
+    hsl(215 22% 74%) 100%);
   background-size: 400% 400%;
   animation: gradient-shift 8s ease infinite;
 }
 
 [data-theme="dark"] .hero-gradient-home {
   background: linear-gradient(135deg,
-    hsl(220 25% 18%) 0%,
-    hsl(220 20% 22%) 25%,
-    hsl(185 35% 28%) 50%,
-    hsl(220 20% 22%) 75%,
-    hsl(220 25% 18%) 100%);
+    hsl(222 24% 14%) 0%,
+    hsl(222 22% 18%) 25%,
+    hsl(215 22% 22%) 50%,
+    hsl(222 22% 18%) 75%,
+    hsl(222 24% 14%) 100%);
   background-size: 400% 400%;
   animation: gradient-shift 8s ease infinite;
 }
@@ -408,7 +369,7 @@
   bottom: 0;
   z-index: 0;
   overflow: hidden;
-  background: radial-gradient(ellipse at 50% 30%, hsl(220 30% 10%) 0%, hsl(220 35% 6%) 60%, hsl(240 25% 4%) 100%);
+  background: radial-gradient(ellipse at 50% 30%, hsl(222 28% 12%) 0%, hsl(222 30% 7%) 60%, hsl(225 25% 4%) 100%);
 }
 
 /* 星空容器 - 用于鼠标交互 */
@@ -426,11 +387,51 @@
   height: 100%;
 }
 
+/* 星星旋转环 */
+.stars-ring {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  left: -50%;
+  top: -50%;
+}
+
+/* 星空旋转动画 - 以屏幕中心为轴心 */
+.stars-rotate-slow {
+  animation: rotate-slow 200s linear infinite;
+  transform-origin: center center;
+}
+
+.stars-rotate-medium {
+  animation: rotate-medium 150s linear infinite;
+  transform-origin: center center;
+}
+
+.stars-rotate-fast {
+  animation: rotate-fast 100s linear infinite;
+  transform-origin: center center;
+}
+
+@keyframes rotate-slow {
+  from { transform: translate(var(--px, 0px), var(--py, 0px)) rotate(0deg); }
+  to { transform: translate(var(--px, 0px), var(--py, 0px)) rotate(360deg); }
+}
+
+@keyframes rotate-medium {
+  from { transform: translate(var(--px, 0px), var(--py, 0px)) rotate(0deg); }
+  to { transform: translate(var(--px, 0px), var(--py, 0px)) rotate(360deg); }
+}
+
+@keyframes rotate-fast {
+  from { transform: translate(var(--px, 0px), var(--py, 0px)) rotate(0deg); }
+  to { transform: translate(var(--px, 0px), var(--py, 0px)) rotate(360deg); }
+}
+
 /* 单个星星 */
 .star {
   position: absolute;
   border-radius: 50%;
-  background: hsl(210 80% 90%);
+  background: hsl(210 60% 85%);
 }
 
 /* 闪烁星星 */
@@ -461,11 +462,11 @@
   width: 6.5px;
   height: 6.5px;
   border-radius: 50%;
-  background: hsl(210 100% 95%);
+  background: hsl(210 70% 90%);
   box-shadow:
-    0 0 6px 2px hsl(210 100% 90% / 0.6),
-    0 0 15px 5px hsl(210 80% 80% / 0.3),
-    0 0 30px 10px hsl(220 60% 70% / 0.15);
+    0 0 6px 2px hsl(210 60% 80% / 0.5),
+    0 0 15px 5px hsl(210 50% 75% / 0.2),
+    0 0 30px 10px hsl(215 40% 70% / 0.12);
   pointer-events: none;
   transform: translate(-50%, -50%);
   opacity: 0;
@@ -486,6 +487,23 @@
 
 .mouse-comet.active {
   opacity: 1;
+}
+
+/* 鼠标光晕 */
+.mouse-glow {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, hsl(210 50% 60% / 0.12) 0%, transparent 70%);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: mouse-glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes mouse-glow-pulse {
+  0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
 }
 
 /* 动态尾迹 */
@@ -532,44 +550,49 @@
   animation: float-delayed 8s ease-in-out infinite;
 }
 
+/* 头部图标颜色 */
+.hero-icon {
+  color: hsl(210 28% 42%);
+}
+
+[data-theme="dark"] .hero-icon {
+  color: hsl(210 35% 68%);
+}
+
 /* 头部文字颜色 - 亮色模式 */
 .hero-text {
-  color: hsl(30 40% 18%);
+  color: hsl(222 35% 12%);
 }
 
-/* 头部文字颜色 - 暗夜模式 */
 [data-theme="dark"] .hero-text {
-  color: hsl(210 20% 92%);
+  color: hsl(220 15% 90%);
 }
 
-/* 头部次要文字颜色 - 亮色模式 */
 .hero-text-muted {
-  color: hsl(30 35% 28%);
+  color: hsl(222 18% 28%);
 }
 
-/* 头部次要文字颜色 - 暗夜模式 */
 [data-theme="dark"] .hero-text-muted {
-  color: hsl(210 10% 65%);
+  color: hsl(220 12% 62%);
 }
 
-/* 头部链接悬停效果 */
 .hero-link {
-  color: hsl(30 40% 18% / 0.7);
+  color: hsl(222 30% 18% / 0.8);
   transition: all 0.2s ease;
 }
 
 .hero-link:hover {
-  color: hsl(30 40% 18%);
+  color: hsl(222 35% 12%);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
 [data-theme="dark"] .hero-link {
-  color: hsl(210 15% 85% / 0.7);
+  color: hsl(220 15% 82% / 0.7);
 }
 
 [data-theme="dark"] .hero-link:hover {
-  color: hsl(210 10% 95%);
+  color: hsl(220 15% 94%);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -646,29 +669,29 @@
 
 /* 磨砂玻璃效果 - 古希腊风格 */
 .glass {
-  background: rgba(255, 250, 245, 0.85);
+  background: rgba(248, 250, 252, 0.88);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid hsl(var(--border));
 }
 
 [data-theme="dark"] .glass {
-  background: rgba(20, 25, 35, 0.9);
+  background: rgba(15, 17, 22, 0.92);
   border-bottom: 1px solid hsl(var(--border));
 }
 
 .glass-card {
-  background: rgba(255, 252, 248, 0.9);
+  background: rgba(252, 253, 255, 0.92);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid hsl(var(--border));
   box-shadow:
-    0 4px 12px -2px rgba(180, 140, 80, 0.1),
-    0 2px 6px -4px rgba(180, 140, 80, 0.08);
+    0 4px 12px -2px rgba(0, 0, 0, 0.05),
+    0 2px 6px -4px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="dark"] .glass-card {
-  background: rgba(25, 30, 45, 0.9);
+  background: rgba(19, 22, 30, 0.92);
   border: 1px solid hsl(var(--border));
 }
 
@@ -680,8 +703,8 @@
 .book-card:hover {
   transform: translateY(-8px) scale(1.02);
   box-shadow:
-    0 20px 25px -5px rgba(180, 140, 80, 0.15),
-    0 8px 10px -6px rgba(180, 140, 80, 0.1);
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.06);
 }
 
 .book-card:hover::before {
@@ -712,8 +735,8 @@
 .card-hover:hover {
   transform: translateY(-4px);
   box-shadow:
-    0 10px 15px -3px rgba(180, 140, 80, 0.1),
-    0 4px 6px -4px rgba(180, 140, 80, 0.08);
+    0 10px 15px -3px rgba(0, 0, 0, 0.08),
+    0 4px 6px -4px rgba(0, 0, 0, 0.05);
 }
 
 /* 居中容器 */
@@ -787,8 +810,8 @@
   background: linear-gradient(
     180deg,
     transparent 0%,
-    hsl(45 60% 85% / 0.4) 0%,
-    hsl(45 60% 85% / 0.4) 100%,
+    hsl(210 35% 80% / 0.4) 0%,
+    hsl(210 35% 80% / 0.4) 100%,
     transparent 100%
   );
   padding: 2px 0;
@@ -796,7 +819,7 @@
 
 /* 选中文字高亮 - 古希腊金 */
 ::selection {
-  background: hsl(38 75% 60% / 0.4);
+  background: hsl(210 38% 56% / 0.25);
   color: hsl(var(--foreground));
 }
 
@@ -807,42 +830,6 @@ a {
 
 a:hover {
   color: hsl(var(--primary));
-}
-
-/* 输入框样式优化 - 只影响挖空输入框 */
-input.fill-input {
-  height: auto !important;
-  line-height: inherit !important;
-  padding: 0 !important;
-  width: auto !important;
-  min-width: 0 !important;
-  box-sizing: border-box !important;
-  max-width: none !important;
-}
-
-/* 挖空输入框样式 */
-input.fill-input {
-  min-width: 0 !important;
-  max-width: none !important;
-  padding: 0 2px !important;
-  margin: 0 !important;
-  border: none !important;
-  border-bottom: 2px solid rgb(251 191 36) !important;
-  background: transparent !important;
-  outline: none !important;
-  font-size: inherit !important;
-  font-family: inherit !important;
-  line-height: inherit !important;
-  white-space: pre !important;
-  box-sizing: border-box !important;
-  caret-color: rgb(251 191 36) !important;
-}
-
-/* 挖空输入框聚焦时 - 去掉外缘边框，只保留下划线 */
-input.fill-input:focus {
-  outline: none !important;
-  box-shadow: none !important;
-  border-bottom-color: rgb(251 191 36) !important;
 }
 
 /* 输入框聚焦效果 - 但排除挖空输入框 */
@@ -870,10 +857,76 @@ textarea:focus {
   100% { background-position: -200% 0; }
 }
 
+/* 琴音模式发光字母动画 */
+.glow-letter {
+  position: fixed;
+  pointer-events: none;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+  animation: glow-letter-appear 1s ease-out forwards;
+}
+
+.glow-letter-text {
+  font-size: 3.75rem;
+  font-weight: 700;
+  color: transparent;
+  background: linear-gradient(to bottom right, hsl(210 60% 74%), hsl(215 40% 54%), hsl(220 45% 62%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 14px hsl(210 38% 56% / 0.45));
+}
+
+@keyframes glow-letter-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* 粒子爆发效果 */
+.particle-burst {
+  position: fixed;
+  pointer-events: none;
+  z-index: 50;
+  transform: translate(-50%, -50%);
+}
+
+.particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  background: hsl(210 45% 62%);
+  box-shadow: 0 0 6px currentColor;
+  animation: particle-fly 0.6s ease-out forwards;
+}
+
+@keyframes particle-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translate(0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx), var(--ty)) scale(0.3);
+  }
+}
+
 /* 古希腊风格徽章 */
 .badge-greek {
-  background: linear-gradient(135deg, hsl(var(--primary) / 0.1), hsl(var(--accent) / 0.1));
-  border: 1px solid hsl(var(--primary) / 0.3);
+  background: hsl(var(--primary) / 0.08);
+  border: 1px solid hsl(var(--primary) / 0.25);
   font-weight: 500;
   letter-spacing: 0.02em;
 }
@@ -900,8 +953,7 @@ progress::-webkit-progress-value {
 
 /* 亮色模式高亮文字颜色 */
 .highlighted-text {
-  color: hsl(35 25% 15%);
-  font-weight: 500;
+  color: inherit;
 }
 
 /* 亮色模式下划线文字颜色 - 确保继承正确颜色 */
@@ -913,77 +965,71 @@ span[style*="text-decoration: underline"]:not([style*="background-color"]) {
 /* 暗夜模式高亮文字颜色调整 - 保持背景色不变，只改变文字颜色使其清晰可见 */
 /* 有背景色的高亮使用深色文字 */
 [data-theme="dark"] .highlighted-text[style*="background-color"] {
-  color: hsl(35 40% 8%) !important;
+  color: hsl(222 30% 10%) !important;
 }
 
-/* 暗夜模式下划线文字颜色 */
 [data-theme="dark"] span[style*="text-decoration: underline"] {
-  color: hsl(45 60% 75%) !important;
+  color: hsl(210 40% 72%) !important;
 }
 
-/* 暗夜模式添加备注后的文字颜色（无论是否有背景色）- 使用浅色文字确保清晰 */
-[data-theme="dark"] .border-b-2.border-dashed.border-amber-500 {
-  color: hsl(210 20% 92%) !important;
+[data-theme="dark"] .border-b-2.border-dashed.border-amber-500:not([style*="background-color"]) {
+  color: hsl(220 15% 90%) !important;
 }
 
-/* 暗夜模式添加备注后的下划线虚线颜色 */
 [data-theme="dark"] .border-dashed.border-amber-500 {
-  border-color: hsl(38 70% 60%) !important;
+  border-color: hsl(210 35% 58%) !important;
 }
 
-/* 暗夜模式备注气泡背景和文字颜色 */
 [data-theme="dark"] .group-hover .text-amber-800,
 [data-theme="dark"] span[class*="absolute"] .text-amber-800 {
-  background-color: hsl(38 60% 25%) !important;
-  color: hsl(45 80% 80%) !important;
+  background-color: hsl(222 30% 28%) !important;
+  color: hsl(210 35% 80%) !important;
 }
 
 /* 挖空模式工具栏按钮 - 亮色模式 */
 .fill-mode-toolbar {
-  background-color: hsl(40 30% 95%) !important;
+  background-color: hsl(220 18% 95%) !important;
 }
 
 .fill-mode-toolbar .text-muted-foreground {
-  color: hsl(35 20% 35%);
+  color: hsl(220 12% 38%);
 }
 
 .fill-mode-toolbar .hover\:text-primary:hover {
-  color: hsl(38 75% 45%);
+  color: hsl(222 38% 30%);
 }
 
 .fill-mode-toolbar .bg-amber-300 {
-  background-color: hsl(38 50% 55%);
+  background-color: hsl(210 35% 50%);
 }
 
-/* 暗夜模式挖空模式工具栏 */
 [data-theme="dark"] .fill-mode-toolbar {
-  background-color: hsl(220 20% 15%) !important;
+  background-color: hsl(222 20% 14%) !important;
 }
 
 [data-theme="dark"] .fill-mode-toolbar .text-muted-foreground {
-  color: hsl(220 15% 65%);
+  color: hsl(220 12% 62%);
 }
 
 [data-theme="dark"] .fill-mode-toolbar .hover\:text-primary:hover {
-  color: hsl(38 90% 65%);
+  color: hsl(210 38% 62%);
 }
 
 [data-theme="dark"] .fill-mode-toolbar .bg-amber-300 {
-  background-color: hsl(38 50% 40%);
+  background-color: hsl(210 32% 42%);
 }
 
-/* 暗夜模式批注弹窗 */
 [data-theme="dark"] .annotation-popup {
-  background: hsl(220 22% 12%);
-  border-color: hsl(220 18% 22%);
-  color: hsl(210 20% 92%);
+  background: hsl(222 22% 12%);
+  border-color: hsl(222 18% 20%);
+  color: hsl(220 15% 90%);
 }
 
 [data-theme="dark"] .annotation-popup input,
 [data-theme="dark"] .annotation-popup textarea {
-  background: hsl(220 18% 15%);
-  border-color: hsl(220 18% 22%);
-  color: hsl(210 20% 92%);
+  background: hsl(222 20% 16%);
+  border-color: hsl(222 18% 20%);
+  color: hsl(220 15% 90%);
 }
 
 [data-theme="dark"] .annotation-popup input::placeholder,

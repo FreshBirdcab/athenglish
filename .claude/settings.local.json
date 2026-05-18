@@ -24,7 +24,27 @@
       "Bash(cmd /c \"rd /s /q node_modules\\\\.prisma\")",
       "Bash(npm uninstall prisma @prisma/client:*)",
       "Bash(wmic:*)",
-      "Bash(ping:*)"
+      "Bash(ping:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(tasklist:*)",
+      "Bash(cmd //c \"taskkill /PID 37108 /F\":*)",
+      "Bash(timeout:*)",
+      "Bash(dir:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(node -e:*)",
+      "Bash(npx tsx src/scripts/reset-admin.ts)",
+      "Bash(cd:*)",
+      "Bash(npm info:*)",
+      "Bash(pkill -f next)",
+      "mcp__MiniMax__web_search",
+      "Bash(export PATH=\"$HOME/.railway/bin:$PATH\")",
+      "Bash(export RAILWAY_API_TOKEN=\"d2bedaec-eca4-4bac-93ad-2be2604eceae\")",
+      "Bash(railway init:*)",
+      "Bash(railway volume:*)",
+      "Bash(railway service:*)",
+      "Bash(openssl rand:*)",
+      "Bash(railway variables:*)"
     ]
   }
 }

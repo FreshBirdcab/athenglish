@@ -1,0 +1,16 @@
+node_modules
+.git
+.gitignore
+.next
+.env
+.env.local
+.env.production
+*.md
+.claude
+.vercel
+npm-debug.log*
+coverage
+.cursor
+.vscode
+.idea
+*.tsbuildinfo

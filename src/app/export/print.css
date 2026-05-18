@@ -1,0 +1,169 @@
+/* 导出 PDF 打印样式 */
+
+/* 屏幕显示 - 隐藏布局元素以呈现干净导出预览 */
+body.export-body > header,
+body.export-body > nav,
+body.export-body footer,
+body.export-body .galaxy-background {
+  display: none !important;
+}
+
+body.export-body main.flex-1 {
+  padding: 0 !important;
+}
+
+/* 屏幕显示样式 */
+.export-container {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 10mm;
+  background: white;
+  color: #1a1a2e;
+  font-family: Georgia, "Times New Roman", "Noto Serif SC", serif;
+  line-height: 1.8;
+}
+
+.export-header {
+  text-align: center;
+  margin-bottom: 8mm;
+  padding-bottom: 5mm;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.export-header h1 {
+  font-size: 22pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin: 0 0 4pt 0;
+}
+
+.export-header .subtitle {
+  font-size: 11pt;
+  color: #64748b;
+}
+
+.export-card {
+  margin-bottom: 4mm;
+  padding: 4mm 0;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.export-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2mm;
+}
+
+.export-card-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24pt;
+  height: 24pt;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10pt;
+  font-weight: 600;
+  margin-right: 8pt;
+}
+
+.export-card-fields {
+  padding-left: 32pt;
+}
+
+/* 词汇/句型/语料各字段通用样式 */
+.export-field-primary {
+  font-size: 16pt;
+  font-weight: 700;
+  color: #1e3a5f;
+  margin-bottom: 2mm;
+}
+
+.export-field-secondary {
+  font-size: 12pt;
+  color: #64748b;
+  margin-bottom: 1mm;
+}
+
+.export-field-usage {
+  font-size: 11pt;
+  color: #64748b;
+  margin-bottom: 1mm;
+}
+
+.export-field-example-en {
+  font-size: 11pt;
+  color: #475569;
+  margin-bottom: 1mm;
+}
+
+.export-field-example-zh {
+  font-size: 10pt;
+  color: #94a3b8;
+  margin-bottom: 0.5mm;
+}
+
+.export-field-analysis {
+  font-size: 10pt;
+  color: #64748b;
+  font-style: italic;
+  margin-top: 2mm;
+  padding: 2mm 3mm;
+  background: #f8fafc;
+  border-left: 3px solid #cbd5e1;
+}
+
+/* 字段标签 */
+.export-field-label {
+  font-size: 8pt;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5mm;
+}
+
+/* 高亮文本样式 */
+.export-text-highlight {
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+.export-text-underline {
+  text-decoration: underline;
+}
+
+.export-footer {
+  text-align: center;
+  margin-top: 6mm;
+  padding-top: 3mm;
+  border-top: 1px solid #e2e8f0;
+  font-size: 8pt;
+  color: #94a3b8;
+}
+
+/* 打印设置 */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header, footer, nav, .galaxy-background {
+    display: none !important;
+  }
+
+  .export-container {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+}

@@ -1,0 +1,54 @@
+/* 挖空输入框样式 - 使用全局主题变量 */
+
+/* 基础样式 */
+input.fill-input {
+  line-height: inherit !important;
+  padding: 0 !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  max-width: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+}
+
+/* 挖空输入框样式 - 亮色主题使用 primary 色 */
+input.fill-input {
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0 2px !important;
+  margin: 0 !important;
+  border: none !important;
+  border-bottom: 2px solid hsl(var(--primary)) !important;
+  background: transparent !important;
+  outline: none !important;
+  font-size: inherit !important;
+  font-family: inherit !important;
+  line-height: inherit !important;
+  white-space: pre !important;
+  box-sizing: border-box !important;
+  caret-color: hsl(var(--primary)) !important;
+  color: inherit !important;
+}
+
+/* 暗色主题下挖空输入框使用 accent 色 */
+[data-theme="dark"] input.fill-input {
+  border-bottom-color: hsl(var(--accent)) !important;
+  caret-color: hsl(var(--accent)) !important;
+}
+
+/* 挖空输入框聚焦时 */
+input.fill-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 暗色主题下挖空输入框聚焦 */
+[data-theme="dark"] input.fill-input:focus {
+  border-bottom-color: hsl(var(--primary)) !important;
+}
+
+/* 选择模式挖空占位符 - 文字透明，只显示下划线，宽度由单词内容撑开 */
+.select-fill-placeholder {
+  color: transparent !important;
+  user-select: none;
+}

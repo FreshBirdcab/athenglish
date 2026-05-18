@@ -34,7 +34,7 @@ export function Header() {
                 height={28}
                 className="transition-transform group-hover:scale-110"
               />
-              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Sparkles className="absolute -top-1 -right-1 h-3 w-3 text-primary/60 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
             <span className="text-xl font-bold gradient-text">AthEnglish</span>
           </Link>
@@ -60,25 +60,25 @@ export function Header() {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
-          {/* 暗夜模式切换 */}
+          {/* 主题切换 - 显示当前模式 */}
           <Button
             variant="ghost"
             size="sm"
             onClick={toggleTheme}
-            className="w-9 h-9 p-0 hover:bg-primary/10"
-            title={theme === "dark" ? "切换到亮色模式" : "切换到暗夜模式"}
+            className="w-9 h-9 p-0 hover:bg-muted hover:text-foreground"
+            title={theme === "dark" ? "当前暗色模式，点击切换" : "当前亮色模式，点击切换"}
           >
-            {theme === "dark" ? (
-              <Sun className="h-4 w-4 text-amber-400" />
+            {theme === "light" ? (
+              <Sun className="h-4 w-4 text-muted-foreground" />
             ) : (
-              <Moon className="h-4 w-4" />
+              <Moon className="h-4 w-4 text-muted-foreground" />
             )}
           </Button>
 
           {session ? (
             <>
               <span className="text-sm text-muted-foreground hidden sm:inline flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="w-2 h-2 rounded-full bg-primary/60 animate-pulse" />
                 {session.user?.name || session.user?.email}
               </span>
               <Button

@@ -13,16 +13,19 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light")
+  const [theme, setThemeState] = useState<Theme>("dark")
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // 从 localStorage 读取主题
+    // 从 localStorage 读取主题，如果没有则默认暗色
     const savedTheme = localStorage.getItem("theme") as Theme | null
-    if (savedTheme) {
-      setThemeState(savedTheme)
-      document.documentElement.setAttribute("data-theme", savedTheme)
+    const theme = savedTheme || "dark"
+    setThemeState(theme)
+    document.documentElement.setAttribute("data-theme", theme)
+    // 如果没有保存过主题，则默认保存暗色
+    if (!savedTheme) {
+      localStorage.setItem("theme", "dark")
     }
   }, [])
 
@@ -52,7 +55,7 @@ export function useTheme() {
   // Return a default value during SSR or if not within provider
   if (context === undefined) {
     return {
-      theme: "light" as Theme,
+      theme: "dark" as Theme,
       toggleTheme: () => {},
       setTheme: () => {}
     }

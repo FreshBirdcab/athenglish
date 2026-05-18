@@ -23,7 +23,7 @@ interface Particle {
 export function Confetti({ show, x = 50, y = 50, onComplete }: ConfettiProps) {
   const [particles, setParticles] = useState<Particle[]>([])
 
-  const colors = ["#22c55e", "#3b82f6", "#ef4444", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"]
+  const colors = ["#64748b", "#475569", "#94a3b8", "#334155", "#78909c", "#546e7a", "#8391a1", "#5c6b7a"]
 
   useEffect(() => {
     if (show) {
@@ -55,9 +55,9 @@ export function Confetti({ show, x = 50, y = 50, onComplete }: ConfettiProps) {
   if (!show || particles.length === 0) return null
 
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-visible" style={{ width: '100%', height: '100%' }}>
+    <span className="absolute inset-0 pointer-events-none overflow-visible" style={{ width: '100%', height: '100%' }}>
       {particles.map((particle) => (
-        <div
+        <span
           key={particle.id}
           className="absolute rounded-full"
           style={{
@@ -86,6 +86,6 @@ export function Confetti({ show, x = 50, y = 50, onComplete }: ConfettiProps) {
           }
         `}</style>
       ))}
-    </div>
+    </span>
   )
 }

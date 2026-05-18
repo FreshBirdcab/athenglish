@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Volume2, Heart, PenLine } from "lucide-react"
+import { renderHighlightedText as renderAnnotatedText } from "@/lib/render-highlighted-text"
 
 interface Card {
   id: string
@@ -47,6 +48,28 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
   const { data: session } = useSession()
   const [favorites, setFavorites] = useState<string[]>([])
   const contentRefs = useRef<Record<string, HTMLDivElement>>({})
+
+  // 预加载语音合成器voice
+  const [cachedVoice, setCachedVoice] = useState<SpeechSynthesisVoice | null>(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      const loadVoice = () => {
+        const voices = window.speechSynthesis.getVoices()
+        const selectedVoice = voices.find(v => v.name.includes('Google') && v.lang.startsWith('en-US'))
+          || voices.find(v => v.lang === 'en-US')
+          || voices.find(v => v.lang.startsWith('en'))
+          || null
+        setCachedVoice(selectedVoice)
+      }
+
+      if (window.speechSynthesis.getVoices().length > 0) {
+        loadVoice()
+      } else {
+        window.speechSynthesis.onvoiceschanged = loadVoice
+      }
+    }
+  }, [])
 
   // 获取字段样式类名
   const getFieldStyleClass = (field: string): string => {
@@ -92,10 +115,14 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
   // 朗读功能
   const speak = (text: string) => {
     if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.lang = 'en-US'
       utterance.rate = 0.9
-      speechSynthesis.speak(utterance)
+      if (cachedVoice) {
+        utterance.voice = cachedVoice
+      }
+      window.speechSynthesis.speak(utterance)
     }
   }
 
@@ -170,69 +197,12 @@ export function StudyList({ cards, bookType, annotations, onTextSelect, onHighli
     return Array.from(fields)
   }
 
-  // 渲染带批注的文本（包括有高亮或有备注的批注）
+  // 渲染带批注的文本（使用共享工具函数）
   const renderHighlightedText = (text: string, cardId: string, field: string) => {
-    if (!text) return null
-
-    // 辅助函数：处理文本片段中的换行
-    const processNewlines = (content: string): React.ReactNode => {
-      if (!content.includes('\n')) return content
-      return content.split('\n').map((line, i, arr) => (
-        <span key={i}>
-          {line}
-          {i < arr.length - 1 && <br />}
-        </span>
-      ))
-    }
-
     const cardAnnotations = annotations[cardId] || []
-    // 过滤当前字段的批注（包括有高亮或有备注的）
-    const validAnnotations = cardAnnotations.filter((a: Annotation) => a.field === field && (a.highlight || a.note))
-
-    if (validAnnotations.length === 0) {
-      return processNewlines(text)
-    }
-
-    const parts: React.JSX.Element[] = []
-    let lastEnd = 0
-
-    validAnnotations.sort((a: Annotation, b: Annotation) => a.startOffset - b.startOffset).forEach((ann: Annotation, index: number) => {
-      if (ann.startOffset < lastEnd) return
-
-      if (ann.startOffset > lastEnd) {
-        parts.push(<span key={`text-${field}-${index}`}>{processNewlines(text.slice(lastEnd, ann.startOffset))}</span>)
-      }
-
-      const highlightedText = text.slice(ann.startOffset, ann.endOffset)
-      parts.push(
-        <span
-          key={`highlight-${field}-${index}`}
-          className={`relative group px-0.5 -mx-0.5 rounded cursor-pointer highlighted-text ${ann.note ? "border-b-2 border-dashed border-amber-500" : ""}`}
-          style={{
-            backgroundColor: ann.highlight && ann.highlight !== "underline" ? ann.highlight : (ann.note ? "transparent" : undefined),
-            textDecoration: ann.highlight === "underline" ? "underline" : undefined
-          }}
-          onClick={(e) => {
-            e.stopPropagation()
-            onHighlightClick(cardId, ann, e)
-          }}
-        >
-          {processNewlines(highlightedText)}
-          {ann.note && (
-            <span className="absolute -top-6 left-0 text-xs bg-amber-100 text-amber-800 px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-              {ann.note}
-            </span>
-          )}
-        </span>
-      )
-      lastEnd = ann.endOffset
+    return renderAnnotatedText(text, cardAnnotations, field, (ann) => {
+      onHighlightClick(cardId, ann, { stopPropagation: () => {} } as React.MouseEvent)
     })
-
-    if (lastEnd < text.length) {
-      parts.push(<span key={`text-end-${field}`}>{processNewlines(text.slice(lastEnd))}</span>)
-    }
-
-    return parts
   }
 
   return (

@@ -22,7 +22,7 @@ export function ComboBurst({ show, combo, onComplete }: ComboBurstProps) {
   const [particles, setParticles] = useState<Particle[]>([])
   const [isAnimating, setIsAnimating] = useState(false)
 
-  const colors = ["#f97316", "#ef4444", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"]
+  const colors = ["#64748b", "#475569", "#94a3b8", "#334155", "#78909c", "#546e7a"]
 
   useEffect(() => {
     if (show && combo >= 2) {
@@ -77,7 +77,7 @@ export function ComboBurst({ show, combo, onComplete }: ComboBurstProps) {
         </span>
         {/* 光晕背景 */}
         <div
-          className="absolute inset-0 rounded-full bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 blur-xl"
+          className="absolute inset-0 rounded-full bg-gradient-to-r from-slate-500 via-slate-400 to-slate-600 blur-xl"
           style={{
             animation: 'combo-pulse 0.6s ease-out forwards',
           }}

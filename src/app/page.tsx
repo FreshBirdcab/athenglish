@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma"
 import { BookOpen, MessageCircle, PenTool, Sparkles, ChevronRight } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import GalaxyBackground from "@/components/layout/galaxy-background"
+import PianoKeyHero from "@/components/home/piano-key-hero"
 
 async function getBooks() {
   // 每次获取时重新验证，确保获取最新数据
@@ -60,14 +61,16 @@ export default async function HomePage() {
 
   return (
     <div className="min-h-screen bg-background relative">
+      {/* 琴音模式发光字母 - 仅暗夜模式 */}
+      <PianoKeyHero />
       {/* 顶部区域 - 动态渐变 + 浮动光点 */}
       <div className="relative z-20 overflow-hidden hero-gradient-home py-13.5">
         {/* 浮动光点 */}
         <div className="absolute inset-0 overflow-hidden">
-          <div className="float-orb w-32 h-32 bg-amber-200/30 -top-4 -left-8" />
-          <div className="float-orb-delayed w-40 h-40 bg-orange-200/20 top-1/2 -right-12" style={{ animationDelay: '-2s' }} />
-          <div className="float-orb w-24 h-24 bg-yellow-200/25 bottom-0 left-1/3" style={{ animationDelay: '-4s' }} />
-          <div className="float-orb-delayed w-28 h-28 bg-amber-100/20 top-1/4 right-1/4" style={{ animationDelay: '-1s' }} />
+          <div className="float-orb w-32 h-32 bg-primary/8 -top-4 -left-8" />
+          <div className="float-orb-delayed w-40 h-40 bg-accent/6 top-1/2 -right-12" style={{ animationDelay: '-2s' }} />
+          <div className="float-orb w-24 h-24 bg-primary/6 bottom-0 left-1/3" style={{ animationDelay: '-4s' }} />
+          <div className="float-orb-delayed w-28 h-28 bg-accent/5 top-1/4 right-1/4" style={{ animationDelay: '-1s' }} />
         </div>
 
         {/* 装饰光晕 */}

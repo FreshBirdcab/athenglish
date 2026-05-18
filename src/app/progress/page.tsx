@@ -5,7 +5,8 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Flame, BookOpen, Target, TrendingUp } from "lucide-react"
+import Link from "next/link"
+import { Flame, BookOpen, Target, TrendingUp, ChevronRight } from "lucide-react"
 
 export default function ProgressPage() {
   const { data: session, status } = useSession()
@@ -56,19 +57,19 @@ export default function ProgressPage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="relative overflow-hidden hero-gradient py-12">
+        <div className="relative overflow-hidden hero-gradient py-13.5">
           <div className="absolute inset-0 opacity-20">
             <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
             <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
           </div>
-          <div className="relative content-container">
+          <div className="relative content-container flex flex-col justify-center min-h-[150px]">
             <h1 className="text-3xl md:text-4xl font-bold hero-text mb-2 tracking-tight">
               学习统计
             </h1>
-            <p className="hero-text/70 text-sm">记录你的学习痕迹</p>
+            <p className="hero-text-muted text-sm">记录你的学习痕迹</p>
           </div>
         </div>
-        <div className="content-container py-8 -mt-3">
+        <div className="content-container py-8 -mt-6">
           <div className="animate-pulse space-y-8">
             <div className="grid gap-4 md:grid-cols-3">
               {[1, 2, 3].map(i => (
@@ -109,20 +110,27 @@ export default function ProgressPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* 顶部区域 */}
-      <div className="relative overflow-hidden hero-gradient py-12">
+      <div className="relative overflow-hidden hero-gradient py-13.5">
         <div className="absolute inset-0 opacity-20">
           <div className="absolute top-8 left-8 w-24 h-24 bg-white/20 rounded-full blur-2xl" />
           <div className="absolute bottom-8 right-8 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
         </div>
-        <div className="relative content-container">
+        <div className="relative content-container flex flex-col justify-center min-h-[150px]">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 hero-link mb-4 text-sm font-medium"
+          >
+            <ChevronRight className="w-4 h-4 -rotate-90" />
+            返回首页
+          </Link>
           <h1 className="text-3xl md:text-4xl font-bold hero-text mb-2 tracking-tight">
             学习统计
           </h1>
-          <p className="hero-text/70 text-sm">记录你的学习痕迹</p>
+          <p className="hero-text-muted text-sm">记录你的学习痕迹</p>
         </div>
       </div>
 
-      <div className="content-container py-8 -mt-3">
+      <div className="content-container py-8 -mt-6">
         {/* 统计卡片 - 3列布局 */}
         <div className="grid gap-4 md:grid-cols-3 mb-8">
           {/* 连续学习 */}
@@ -137,8 +145,8 @@ export default function ProgressPage() {
                   <div className="text-3xl font-bold">{currentStreak} <span className="text-base font-normal">天</span></div>
                   <p className="text-xs text-muted-foreground mt-1">最长 {longestStreak} 天</p>
                 </div>
-                <div className="w-14 h-14 rounded-xl bg-orange-100 flex items-center justify-center">
-                  <Flame className="w-7 h-7 text-orange-500" />
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center">
+                  <Flame className="w-7 h-7 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -156,8 +164,8 @@ export default function ProgressPage() {
                   <div className="text-3xl font-bold">{todayCount} <span className="text-base font-normal">张</span></div>
                   <p className="text-xs text-muted-foreground mt-1">今日已标记</p>
                 </div>
-                <div className="w-14 h-14 rounded-xl bg-green-100 flex items-center justify-center">
-                  <BookOpen className="w-7 h-7 text-green-600" />
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center">
+                  <BookOpen className="w-7 h-7 text-primary" />
                 </div>
               </div>
             </CardContent>
@@ -175,8 +183,8 @@ export default function ProgressPage() {
                   <div className="text-3xl font-bold">{learnedCards} <span className="text-base font-normal">/ {totalCards}</span></div>
                   <p className="text-xs text-muted-foreground mt-1">总卡片数</p>
                 </div>
-                <div className="w-14 h-14 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <Target className="w-7 h-7 text-blue-600" />
+                <div className="w-14 h-14 rounded-xl bg-secondary flex items-center justify-center">
+                  <Target className="w-7 h-7 text-primary" />
                 </div>
               </div>
             </CardContent>

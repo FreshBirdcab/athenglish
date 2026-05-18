@@ -1,15 +1,15 @@
 "use client"
 
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 
 interface Star {
   id: number
   x: number
   y: number
   size: number
+  opacity: number
+  phase: 'appearing' | 'stable' | 'fading'
   duration: number
-  delay: number
-  type: 'twinkle' | 'fade'
 }
 
 interface TrailPoint {
@@ -20,39 +20,52 @@ interface TrailPoint {
 export default function GalaxyBackground() {
   const [stars, setStars] = useState<Star[]>([])
   const [mousePos, setMousePos] = useState({ x: -100, y: -100 })
-  const [trailPoints, setTrailPoints] = useState<TrailPoint[]>([])
-  const [trailFading, setTrailFading] = useState(false)
   const [isMouseIn, setIsMouseIn] = useState(false)
   const [parallaxOffset, setParallaxOffset] = useState({ x: 0, y: 0 })
+  const [trailPoints, setTrailPoints] = useState<TrailPoint[]>([])
+  const [trailFading, setTrailFading] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const prevMouseRef = useRef({ x: 0, y: 0 })
 
+  // 创建星星
+  const createStar = useCallback((id: number): Star => {
+    return {
+      id,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 2.5 + 1,
+      opacity: 0,
+      phase: 'appearing',
+      duration: Math.random() * 8 + 4,
+    }
+  }, [])
+
+  // 初始化星星 - 90颗
   useEffect(() => {
-    // 生成随机星星
-    const newStars: Star[] = []
-    for (let i = 0; i < 60; i++) {
-      newStars.push({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: Math.random() * 2.5 + 0.8,
-        duration: Math.random() * 4 + 2,
-        delay: Math.random() * 5,
-        type: 'twinkle'
-      })
-    }
-    for (let i = 0; i < 20; i++) {
-      newStars.push({
-        id: 60 + i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: Math.random() * 2 + 1,
-        duration: Math.random() * 6 + 4,
-        delay: Math.random() * 8,
-        type: 'fade'
-      })
-    }
-    setStars(newStars)
+    const initialStars = Array.from({ length: 90 }, (_, i) => createStar(i))
+    setStars(initialStars)
+  }, [createStar])
+
+  // 更新星星状态
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStars(prev => prev.map(star => {
+        const elapsed = (Date.now() / 1000) % star.duration
+        const cycleTime = elapsed / star.duration
+
+        if (cycleTime < 0.15) {
+          return { ...star, phase: 'appearing', opacity: cycleTime / 0.15 }
+        } else if (cycleTime > star.duration / (star.duration + 4) - 0.2) {
+          const fadeProgress = (cycleTime - (star.duration / (star.duration + 4) - 0.2)) / 0.2
+          return { ...star, phase: 'fading', opacity: Math.max(0, 1 - fadeProgress) }
+        } else {
+          const flicker = Math.sin(Date.now() / 800 + star.id * 0.5) * 0.25 + 0.75
+          return { ...star, phase: 'stable', opacity: flicker }
+        }
+      }))
+    }, 50)
+
+    return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
@@ -61,25 +74,19 @@ export default function GalaxyBackground() {
 
     let trailTimeout: NodeJS.Timeout
 
-    // 使用全局鼠标监听，覆盖整个页面
     const handleMouseMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect()
-
-      // 基于整个窗口计算位置
       const x = (e.clientX / window.innerWidth) * 100
       const y = (e.clientY / window.innerHeight) * 100
 
-      // 鼠标光效在整个星空背景区域显示（页面下半部分或在整个背景容器内）
       if (e.clientY > rect.top) {
         setMousePos({ x, y })
         setIsMouseIn(true)
 
-        // 视差偏移 - 基于整个窗口的位置
         const parallaxX = (x - 50) * 0.25
         const parallaxY = (y - 50) * 0.15
         setParallaxOffset({ x: parallaxX, y: parallaxY })
 
-        // 计算移动距离添加尾迹
         const dx = x - prevMouseRef.current.x
         const dy = y - prevMouseRef.current.y
         const dist = Math.sqrt(dx * dx + dy * dy)
@@ -101,9 +108,6 @@ export default function GalaxyBackground() {
             }, 300)
           }, 150)
         }
-      } else {
-        setIsMouseIn(false)
-        setParallaxOffset({ x: 0, y: 0 })
       }
     }
 
@@ -127,114 +131,86 @@ export default function GalaxyBackground() {
     }
   }, [])
 
-  const twinkleStars = stars.filter(s => s.type === 'twinkle')
-  const fadeStars = stars.filter(s => s.type === 'fade')
-
   return (
     <div className="galaxy-background" ref={containerRef}>
-      {/* 前景星星 - 视差最大 */}
+      {/* 外层星星 - 旋转最慢 */}
       <div
-        className="galaxy-stars"
+        className="stars-ring stars-rotate-slow"
         style={{
-          transform: `translate(${parallaxOffset.x * 1.5}px, ${parallaxOffset.y * 1.5}px)`,
-          transition: 'transform 0.25s ease-out'
-        }}
+          '--px': `${parallaxOffset.x * 0.5}px`,
+          '--py': `${parallaxOffset.y * 0.5}px`,
+        } as React.CSSProperties}
       >
-        {twinkleStars.slice(0, 20).map((star) => (
+        {stars.slice(0, 30).map((star) => (
           <div
             key={star.id}
-            className="star star-twinkle"
+            className="star"
             style={{
               left: `${star.x}%`,
               top: `${star.y}%`,
               width: `${star.size}px`,
               height: `${star.size}px`,
-              animationDuration: `${star.duration}s`,
-              animationDelay: `${star.delay}s`,
-              background: `hsl(${200 + Math.random() * 40} ${60 + Math.random() * 40}% ${70 + Math.random() * 30}%)`,
-              boxShadow: `0 0 ${star.size * 2}px ${star.size * 0.5}px hsl(${200 + Math.random() * 40} ${60 + Math.random() * 40}% ${70 + Math.random() * 30}% / 0.5)`
+              opacity: star.opacity,
+              background: `hsl(${210 + Math.random() * 30} ${70 + Math.random() * 30}% ${70 + Math.random() * 20}%)`,
+              boxShadow: `0 0 ${star.size * 2}px ${star.size * 0.6}px hsl(${210 + Math.random() * 30} 80% 80% / 0.4)`,
+              transition: 'opacity 0.3s ease'
             }}
           />
         ))}
       </div>
 
-      {/* 中层星星 */}
+      {/* 中层星星 - 旋转中等 */}
       <div
-        className="galaxy-stars"
+        className="stars-ring stars-rotate-medium"
         style={{
-          transform: `translate(${parallaxOffset.x * 1}px, ${parallaxOffset.y * 1}px)`,
-          transition: 'transform 0.25s ease-out'
-        }}
+          '--px': `${parallaxOffset.x * 0.3}px`,
+          '--py': `${parallaxOffset.y * 0.3}px`,
+        } as React.CSSProperties}
       >
-        {twinkleStars.slice(20, 40).map((star) => (
+        {stars.slice(30, 60).map((star) => (
           <div
             key={star.id}
-            className="star star-twinkle"
+            className="star"
             style={{
               left: `${star.x}%`,
               top: `${star.y}%`,
-              width: `${star.size * 0.7}px`,
-              height: `${star.size * 0.7}px`,
-              animationDuration: `${star.duration + 1}s`,
-              animationDelay: `${star.delay}s`,
-              background: `hsl(${200 + Math.random() * 40} ${50 + Math.random() * 30}% ${60 + Math.random() * 30}%)`
+              width: `${star.size * 0.8}px`,
+              height: `${star.size * 0.8}px`,
+              opacity: star.opacity,
+              background: `hsl(${210 + Math.random() * 30} ${70 + Math.random() * 30}% ${70 + Math.random() * 20}%)`,
+              boxShadow: `0 0 ${star.size * 1.5}px ${star.size * 0.4}px hsl(${210 + Math.random() * 30} 80% 80% / 0.3)`,
+              transition: 'opacity 0.3s ease'
             }}
           />
         ))}
       </div>
 
-      {/* 远层星星 - 视差最小 */}
+      {/* 内层星星 - 旋转最快 */}
       <div
-        className="galaxy-stars"
+        className="stars-ring stars-rotate-fast"
         style={{
-          transform: `translate(${parallaxOffset.x * 0.5}px, ${parallaxOffset.y * 0.5}px)`,
-          transition: 'transform 0.25s ease-out'
-        }}
+          '--px': `${parallaxOffset.x * 0.15}px`,
+          '--py': `${parallaxOffset.y * 0.15}px`,
+        } as React.CSSProperties}
       >
-        {twinkleStars.slice(40).map((star) => (
+        {stars.slice(40).map((star) => (
           <div
             key={star.id}
-            className="star star-twinkle"
+            className="star"
             style={{
               left: `${star.x}%`,
               top: `${star.y}%`,
-              width: `${star.size * 0.4}px`,
-              height: `${star.size * 0.4}px`,
-              animationDuration: `${star.duration + 2}s`,
-              animationDelay: `${star.delay}s`,
-              background: `hsl(${200 + Math.random() * 40} ${40 + Math.random() * 30}% ${50 + Math.random() * 30}%)`
+              width: `${star.size * 0.6}px`,
+              height: `${star.size * 0.6}px`,
+              opacity: star.opacity,
+              background: `hsl(${210 + Math.random() * 30} ${60 + Math.random() * 30}% ${60 + Math.random() * 20}%)`,
+              transition: 'opacity 0.3s ease'
             }}
           />
         ))}
       </div>
 
-      {/* 生灭星星 */}
-      <div
-        className="galaxy-stars"
-        style={{
-          transform: `translate(${parallaxOffset.x * 0.8}px, ${parallaxOffset.y * 0.8}px)`,
-          transition: 'transform 0.25s ease-out'
-        }}
-      >
-        {fadeStars.map((star) => (
-          <div
-            key={star.id}
-            className="star star-fade"
-            style={{
-              left: `${star.x}%`,
-              top: `${star.y}%`,
-              width: `${star.size}px`,
-              height: `${star.size}px`,
-              animationDuration: `${star.duration}s`,
-              animationDelay: `${star.delay}s`,
-              background: `hsl(${200 + Math.random() * 40} ${60 + Math.random() * 40}% ${70 + Math.random() * 30}%)`,
-              boxShadow: `0 0 ${star.size * 2}px ${star.size * 0.5}px hsl(${200 + Math.random() * 40} ${60 + Math.random() * 40}% ${70 + Math.random() * 30}% / 0.4)`
-            }}
-          />
-        ))}
-      </div>
-
-      {/* 跟随鼠标的流星 */}
+      {/* 鼠标流星 */}
       {isMouseIn && (
         <>
           <div
@@ -244,7 +220,7 @@ export default function GalaxyBackground() {
               top: `${mousePos.y}%`
             }}
           />
-          {/* 动态尾迹 */}
+          {/* 尾迹 */}
           {trailPoints.map((point, index) => {
             const progress = (index + 1) / trailPoints.length
             const opacity = progress * 0.8
@@ -260,8 +236,8 @@ export default function GalaxyBackground() {
                   width: `${size}px`,
                   height: `${size}px`,
                   borderRadius: '50%',
-                  background: `hsl(210 100% ${70 + progress * 25}%)`,
-                  boxShadow: `0 0 ${size}px ${size * 0.5}px hsl(210 100% 90% / ${opacity * 0.6})`,
+                  background: `hsl(210 ${30 + progress * 30}% ${60 + progress * 25}%)`,
+                  boxShadow: `0 0 ${size}px ${size * 0.5}px hsl(210 45% 82% / ${opacity * 0.4})`,
                   opacity: trailFading ? 0 : opacity,
                   transform: 'translate(-50%, -50%)',
                   transition: trailFading ? 'opacity 0.3s ease-out' : 'none'
